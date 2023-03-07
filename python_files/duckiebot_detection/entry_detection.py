@@ -126,6 +126,6 @@ class DuckiebotDetectionNode(DTROS):
             self.pub_circlepattern_image.publish(image_msg_out)
 
 
-if __name__ == "__main__":
+def entry():
     duckiebot_detection_node = DuckiebotDetectionNode("duckiebot_detection")
     rospy.spin()
