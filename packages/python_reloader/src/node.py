@@ -28,11 +28,11 @@ class ReloaderNode(DTROS):
         def reloader_callback(msg):
             nonlocal github
             if msg.data == 'start':
-                owner = github.get_user('KarlHanEdn')
+                owner = github.get_user('CMPUT412-Team-Leen-Tianming')
                 print(f'current working folder:{os.getcwd()}')
-                for package_name in ('augmented_reality_apriltag', 'lane_following', 'tf_broadcast'):
+                for package_name in ('lane_following', 'duckiebot_detection'):
                     target_folder = rospack.get_path(package_name) + f'/src'
-                    download_from_github(owner, f'E3P3Transform', 'master', target_folder, f'python_files/{package_name}')
+                    download_from_github(owner, f'E4Tailing', 'main', target_folder, f'python_files/{package_name}')
                     print(f'resulting files:')
                     for file in os.listdir(target_folder):
                         print('    ', file)
