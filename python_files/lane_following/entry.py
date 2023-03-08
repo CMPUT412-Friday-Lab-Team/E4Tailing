@@ -95,7 +95,7 @@ class LaneFollowingNode:
         upper_range = np.array([30,255,255])
 
         yellow_mask = cv2.inRange(hsv, lower_range, upper_range)
-        yellow_mask[0:260, 0:280]
+        yellow_mask[0:260, 0:310]
         img_dilation = cv2.dilate(yellow_mask, np.ones((35, 35), np.uint8), iterations=1)
 
         contours, hierarchy = cv2.findContours(img_dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -150,11 +150,11 @@ class LaneFollowingNode:
             angle_error = self.last_angle_error
             position_error = self.last_position_error
         
-        position_error = min(position_error, 280.)
+        position_error = min(position_error, 250.)
         self.controller.update_error(angle_error, position_error)
         adjust = self.controller.get_adjustment()
 
-        adjust = max(min(adjust, .9), -.9)
+        adjust = max(min(adjust, .7), -.7)
         left_speed = self.speed * (1 - adjust)
         right_speed = self.speed * (1 + adjust)
         self.controller.drive(left_speed, right_speed)
