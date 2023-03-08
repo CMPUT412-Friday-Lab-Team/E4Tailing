@@ -48,7 +48,7 @@ class DuckiebotDistanceNode(DTROS):
         self.pub_distance_to_robot_ahead = rospy.Publisher("/{}/duckiebot_distance_node/distance".format(self.host), Float32, queue_size=1)
         self.pcm = PinholeCameraModel()
         
-        self.log("Initialization completed")
+        print("Initialization completed")
 
 
     def cb_process_camera_info(self, msg):
@@ -111,12 +111,12 @@ class DuckiebotDistanceNode(DTROS):
 
 
                 else:
-                    self.log(
+                    print(
                         "Pose estimation failed, too high reprojection error. "
                         "Reporting detection at 0cm for safety."
                     )
             else:
-                self.log("Pose estimation failed. " "Reporting detection at 0cm for safety.")
+                print("Pose estimation failed. " "Reporting detection at 0cm for safety.")
 
 
     def calc_circle_pattern(self, height, width):

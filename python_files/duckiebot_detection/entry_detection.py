@@ -54,7 +54,7 @@ class DuckiebotDetectionNode:
         self.pub_centers = rospy.Publisher("/{}/duckiebot_detection_node/centers".format(self.host), VehicleCorners, queue_size=1)
         self.pub_circlepattern_image = rospy.Publisher("/{}/duckiebot_detection_node/detection_image/compressed".format(self.host), CompressedImage, queue_size=1)
         self.pub_detection = rospy.Publisher("/{}/duckiebot_detection_node/detection".format(self.host), BoolStamped, queue_size=1)
-        self.log("Detection Initialization completed.")
+        print("Detection Initialization completed.")
 
     def cbParametersChanged(self):
 
