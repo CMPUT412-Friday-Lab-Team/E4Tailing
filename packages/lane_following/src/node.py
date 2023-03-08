@@ -9,7 +9,7 @@ from duckietown.dtros import DTROS, TopicType, NodeType
 def callback(msg):
     if msg.data == 'shutdown':
         rospy.signal_shutdown('received shutdown message')
-    elif msg.data == 'pkg_reload':
+    elif msg.data == 'start':
         import entry
         importlib.reload(entry)
         entry.entry()

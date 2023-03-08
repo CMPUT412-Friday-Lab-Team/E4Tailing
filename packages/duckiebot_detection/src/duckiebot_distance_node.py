@@ -19,7 +19,11 @@ class DuckiebotDistanceNode(DTROS):
     responsible for estimating the relative pose to a detected back pattern of a robot
     """
 
-    def __init__(self):
+    def __init__(self, node_name):
+    
+    	
+        # Initialize the DTROS parent class
+        super(DuckiebotDistanceNode, self).__init__(node_name=node_name, node_type=NodeType.PERCEPTION)
         self.host = str(os.environ['VEHICLE_NAME'])
 	
 	#Distance between the centers of the circles on the back
@@ -48,7 +52,7 @@ class DuckiebotDistanceNode(DTROS):
         self.pub_distance_to_robot_ahead = rospy.Publisher("/{}/duckiebot_distance_node/distance".format(self.host), Float32, queue_size=1)
         self.pcm = PinholeCameraModel()
         
-        print("Initialization completed")
+        self.log("Initialization completed")
 
 
     def cb_process_camera_info(self, msg):
@@ -111,12 +115,12 @@ class DuckiebotDistanceNode(DTROS):
 
 
                 else:
-                    print(
+                    self.log(
                         "Pose estimation failed, too high reprojection error. "
                         "Reporting detection at 0cm for safety."
                     )
             else:
-                print("Pose estimation failed. " "Reporting detection at 0cm for safety.")
+                self.log("Pose estimation failed. " "Reporting detection at 0cm for safety.")
 
 
     def calc_circle_pattern(self, height, width):
@@ -143,6 +147,6 @@ class DuckiebotDistanceNode(DTROS):
                     )
 
 
-def entry():
-    duckiebot_distance_node = DuckiebotDistanceNode()
+if __name__ == "__main__":
+    duckiebot_distance_node = DuckiebotDistanceNode(node_name="duckiebot_distance_node")
     rospy.spin()

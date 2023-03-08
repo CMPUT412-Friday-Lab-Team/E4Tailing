@@ -11,7 +11,7 @@ from geometry_msgs.msg import Point32
 from sensor_msgs.msg import CompressedImage
 
 
-class DuckiebotDetectionNode:
+class DuckiebotDetectionNode(DTROS):
     """
     This node detects if there is another Duckiebot in the image. This is done by recognizing the pattern of circles on
     the back of every robot.
@@ -25,7 +25,10 @@ class DuckiebotDetectionNode:
         ~detection (:obj:`boolStamped`): If a duckiebot is detected or not
     """
 
-    def __init__(self):
+    def __init__(self, node_name):
+
+        # Initialize the DTROS parent class
+        super(DuckiebotDetectionNode, self).__init__(node_name=node_name, node_type=NodeType.PERCEPTION)
         # Initialize the parameters
         
         self.host = str(os.environ['VEHICLE_NAME'])
@@ -54,7 +57,7 @@ class DuckiebotDetectionNode:
         self.pub_centers = rospy.Publisher("/{}/duckiebot_detection_node/centers".format(self.host), VehicleCorners, queue_size=1)
         self.pub_circlepattern_image = rospy.Publisher("/{}/duckiebot_detection_node/detection_image/compressed".format(self.host), CompressedImage, queue_size=1)
         self.pub_detection = rospy.Publisher("/{}/duckiebot_detection_node/detection".format(self.host), BoolStamped, queue_size=1)
-        print("Detection Initialization completed.")
+        self.log("Detection Initialization completed.")
 
     def cbParametersChanged(self):
 
@@ -123,6 +126,6 @@ class DuckiebotDetectionNode:
             self.pub_circlepattern_image.publish(image_msg_out)
 
 
-def entry():
-    duckiebot_detection_node = DuckiebotDetectionNode()
+if __name__ == "__main__":
+    duckiebot_detection_node = DuckiebotDetectionNode("duckiebot_detection")
     rospy.spin()
