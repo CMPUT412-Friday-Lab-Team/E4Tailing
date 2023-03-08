@@ -16,7 +16,7 @@ def callback(msg):
 
 
 if __name__ == '__main__':
-    node = DTROS('lane_following_node', node_type=NodeType.GENERIC)
+    node = DTROS('duckiebot_detection', node_type=NodeType.PERCEPTION)
     rospy.Subscriber('/general', String, callback)
     rospy.spin()
 
