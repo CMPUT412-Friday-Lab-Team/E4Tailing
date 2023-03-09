@@ -91,7 +91,7 @@ class LaneFollowingNode:
     def update_controller(self, im):
         hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
-        print(hsv[0, 0, :], hsv[639, 0, :], hsv[639, 479, :], hsv[0, 479, :])
+        print(hsv[0, 0, :], hsv[479, 0, :], hsv[479, 639, :], hsv[0, 639, :])
         print(f'center:{hsv[240, 320, :]}')
 
         lower_range = np.array([22,100,150])
