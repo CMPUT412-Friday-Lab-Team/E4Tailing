@@ -91,6 +91,9 @@ class LaneFollowingNode:
     def update_controller(self, im):
         hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
+        print(hsv[0, 0, :], hsv[639, 0, :], hsv[639, 479, :], hsv[0, 479, :])
+        print(f'center:{hsv[240, 320, :]}')
+
         lower_range = np.array([22,100,150])
         upper_range = np.array([30,255,255])
 
@@ -159,7 +162,7 @@ class LaneFollowingNode:
         adjust = max(min(adjust, .9), -.9)
         left_speed = self.speed * (1 - adjust)
         right_speed = self.speed * (1 + adjust)
-        self.controller.drive(left_speed, right_speed)
+        # self.controller.drive(left_speed, right_speed)
 
         if PUBLISH_IMAGE:
             ARROW_LENGTH = 50
