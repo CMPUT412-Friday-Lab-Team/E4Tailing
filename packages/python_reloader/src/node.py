@@ -6,7 +6,7 @@ from duckietown.dtros import DTROS, NodeType
 import os
 from gh_download import download_from_github
 from github import Github
-from secret_token import TOKEN
+from git_token import TOKEN
 import rospkg
 
 
