@@ -1,6 +1,7 @@
 import rospy
 from duckietown_msgs.msg import WheelsCmdStamped
 import os
+import math
 
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
@@ -48,6 +49,11 @@ class KineticController:
         msg.vel_left = left_speed
         msg.vel_right = right_speed
         self.pub.publish(msg)
+    
+    def driveForTime(self, left_speed, right_speed, rate, ntime_step):
+        for i in range(ntime_step):
+            self.drive(left_speed, self.drive(right_speed))
+            rate.sleep()
     
     def update_error(self, angle_error, position_error):
         #print(angle_error)

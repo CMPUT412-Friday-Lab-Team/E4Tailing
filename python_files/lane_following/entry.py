@@ -95,7 +95,7 @@ class LaneFollowingNode:
         upper_range = np.array([30,255,255])
 
         yellow_mask = cv2.inRange(hsv, lower_range, upper_range)
-        yellow_mask[0:260, 0:310] = 0
+        yellow_mask[:260, 330:] = 0
         img_dilation = cv2.dilate(yellow_mask, np.ones((35, 35), np.uint8), iterations=1)
 
         contours, hierarchy = cv2.findContours(img_dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -108,7 +108,7 @@ class LaneFollowingNode:
             ctn = contours[i]
             xmin, ymin, width, height = cv2.boundingRect(ctn)
             midx, midy = xmin + .5 * width, ymin + .5 * height
-            if midy < 190 or midx - midy > 350:  # crop top half
+            if midy < 190 or midx + midy > 290:  # crop top half
                 continue
             area = cv2.contourArea(ctn)
             if area > largest_area:
@@ -136,12 +136,14 @@ class LaneFollowingNode:
             if contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
                 angle_error = 0.
 
-            position_line_ref = np.cross(np.array((320., 130.5, 1.)), np.array((570., 440., 1.)))
+            position_line_ref = np.cross(
+                np.array((im.shape[1] * 0.5, 130.5, 1.)), 
+                np.array((70., 440., 1.)))
             position_line_ref /= position_line_ref[0]
             position_ref = -position_line_ref[2].item() - contour_y * position_line_ref[1].item()
             position_error = position_ref - contour_x
 
-            if contour_x >= 630 or contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
+            if contour_x <= 10 or contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
                 angle_error = self.last_angle_error
             
             self.last_angle_error = angle_error
@@ -150,7 +152,7 @@ class LaneFollowingNode:
             angle_error = self.last_angle_error
             position_error = self.last_position_error
         
-        position_error = min(position_error, 280.)
+        position_error = max(position_error, -280.)
         self.controller.update_error(angle_error, position_error)
         adjust = self.controller.get_adjustment()
 
