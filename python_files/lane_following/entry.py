@@ -108,7 +108,7 @@ class LaneFollowingNode:
             ctn = contours[i]
             xmin, ymin, width, height = cv2.boundingRect(ctn)
             midx, midy = xmin + .5 * width, ymin + .5 * height
-            if midy < 190 or midx + midy > 290:  # crop top half
+            if midy < 190 or midx + midy < 290:  # crop top half
                 continue
             area = cv2.contourArea(ctn)
             if area > largest_area:
