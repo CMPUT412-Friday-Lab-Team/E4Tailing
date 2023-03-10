@@ -43,7 +43,7 @@ class LaneFollowingNode:
         self.speed = self.max_speed  # current speed
 
         self.turn_flag = False
-        self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
+        self.stop_timer_default = PROCESSING_RATE * .5  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
         self.turn_detection = [0., 0., 0.]  # detecting if the left, forward and right direction of an intersection has a road to turn to
 
@@ -94,8 +94,8 @@ class LaneFollowingNode:
             im = self.image
             self.image_lock.release()
             if im is not None:
-                self.update_controller(im)
                 self.stopline_processing(im)
+                self.update_controller(im)
                 self.controller.update()
             rate.sleep()
     
@@ -240,7 +240,7 @@ class LaneFollowingNode:
                     elif midx < im.shape[1] * 0.9:
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
-                else:  # left-facing
+                elif len(self.controller.actions_queue) == 2:  # left-facing
                     if midx < im.shape[1] * .5:
                         print(f'case3 {midx}, {midy}')
                         self.turn_detection[0] += 1
@@ -296,9 +296,9 @@ class LaneFollowingNode:
                 # for now, always turn right
                 self.turn_flag = True
                 print('inserting actions')
-                self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
-                self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
-                self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
+                self.controller.driveForTime(-.8 * self.max_speed, .8, PROCESSING_RATE * .25)
+                self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
+                self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .15)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
