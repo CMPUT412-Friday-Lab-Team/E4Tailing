@@ -247,6 +247,7 @@ class LaneFollowingNode:
                     else:
                         print(f'case4 {midx}, {midy}')
                         self.turn_detection[1] += .5
+                print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
 
             if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
@@ -275,19 +276,19 @@ class LaneFollowingNode:
                 self.speed = self.max_speed
                 if turn_idx == 0:
                     print('making a left turn')
-                    self.controller.driveForTime(.7 * self.speed, 1.3 * self.speed, PROCESSING_RATE * 1.)
+                    self.controller.driveForTime(.8 * self.speed, 1.2 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 1:
                     print('making a forward turn')
-                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * 1.)
+                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 2:
                     print('making a right turn')
-                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * 1.)
+                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
 
                 # reset the detection list since we are out of the intersection after the turn
                 for i in range(len(self.turn_detection)):
                     self.turn_detection[i] = 0
                 self.turn_flag = False
-                self.stop_timer = self.stop_timer_default + 30
+                self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.5
 
         if self.stop_timer <= self.stop_timer_default and \
             (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
