@@ -287,6 +287,7 @@ class LaneFollowingNode:
                     self.turn_detection[i] = 0
                 self.turn_flag = False
 
+        print(self.stop_timer)
         if contour_y > 420 or (contour_y > 410 and self.stop_timer < self.stop_timer_default):
             self.speed = 0
             self.stop_timer -= 1
