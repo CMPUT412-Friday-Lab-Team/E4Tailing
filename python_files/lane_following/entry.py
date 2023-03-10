@@ -258,6 +258,7 @@ class LaneFollowingNode:
                 
 
         if publish_flag:
+            im[red_mask[:, :, np.newaxis]] = 255
             msg = CompressedImage()
             msg.header.seq = self.seq
             msg.header.stamp = rospy.Time.now()
