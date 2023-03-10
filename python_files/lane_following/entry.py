@@ -232,7 +232,7 @@ class LaneFollowingNode:
             # detect which way we can turn to
             lenq = len(self.controller.actions_queue)
             if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
-                if len(self.controller.actions_queue) == 4:  # forward-facing
+                if len(self.controller.actions_queue) == 2:  # forward-facing
                     if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
                         print(f'case1 {midx}, {midy}')
                         cv2.arrowedLine(im,
@@ -247,21 +247,6 @@ class LaneFollowingNode:
                             (0, 0, 255), 3)
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
-                elif len(self.controller.actions_queue) == 2:  # left-facing
-                    if midx < im.shape[1] * .5:
-                        cv2.arrowedLine(im,
-                            (int(midx), int(midy)), 
-                            (int(midx), int(midy + 10)), 
-                            (255, 0, 0), 3)
-                        print(f'case3 {midx}, {midy}')
-                        self.turn_detection[0] += 1
-                    else:
-                        cv2.arrowedLine(im,
-                            (int(midx), int(midy)), 
-                            (int(midx), int(midy + 10)), 
-                            (0, 255, 0), 3)
-                        print(f'case4 {midx}, {midy}')
-                        self.turn_detection[1] += .5
                 print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
 
             if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
@@ -272,8 +257,8 @@ class LaneFollowingNode:
         if largest_idx != -1:
             largest_ctn = contours[largest_idx]
 
-            if publish_flag:
-                im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
+            # if publish_flag:
+            #     im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
 
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
@@ -296,7 +281,7 @@ class LaneFollowingNode:
                     self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5)
                 elif turn_idx == 2:
                     print('making a right turn')
-                    self.controller.driveForTime(1.67 * self.speed, .43 * self.speed, PROCESSING_RATE * .75)
+                    self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75)
 
                 # reset the detection list since we are out of the intersection after the turn
                 for i in range(len(self.turn_detection)):
@@ -312,9 +297,7 @@ class LaneFollowingNode:
             self.turn_flag = True
 
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-            self.controller.driveForTime(-.67 * self.max_speed, .67, PROCESSING_RATE * .25)
-            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-            self.controller.driveForTime(.67, -.67, PROCESSING_RATE * .16)
+            self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
@@ -323,7 +306,7 @@ class LaneFollowingNode:
                 
 
         if publish_flag:
-            contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            im = cv2.drawContours(im, contours, -1, (0,255,0), 3)
 
             msg = CompressedImage()
             msg.header.seq = self.seq
