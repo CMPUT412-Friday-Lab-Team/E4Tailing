@@ -17,6 +17,8 @@ import kinetic_controller
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
 PUBLISH_IMAGE = True
+PUBLISH_IMAGE_TYPE = 'red'
+PROCESSING_RATE = 20
 
 
 class LaneFollowingNode:
@@ -36,7 +38,13 @@ class LaneFollowingNode:
         self.controller = kinetic_controller.KineticController(
             (ANGLE_MULT * .3, ANGLE_MULT * .002, ANGLE_MULT * -3), 
             (POSITION_MULT * .005, POSITION_MULT * .00005, POSITION_MULT * -.0))
-        self.speed = 0.55
+        
+        self.max_speed = 0.55  # top speed when driving in a single lane
+        self.speed = self.max_speed  # current speed
+
+        self.stop_timer_max = PROCESSING_RATE * 2  # time before stopping after seeing a red line
+        self.stop_timer = self.stop_timer_max  # current timer, maxed out at self.stop_timer_max
+
 
         self.continue_run = True
         self.last_angle_error = 0.
@@ -71,7 +79,7 @@ class LaneFollowingNode:
                 print(f'coefficient type {strs[0]} not recognized!')
 
     def run(self):
-        rate = rospy.Rate(20)  # in Hz
+        rate = rospy.Rate(PROCESSING_RATE)  # in Hz
         for i in range(10):
             self.controller.drive(0, 0)
             rate.sleep()
@@ -86,13 +94,13 @@ class LaneFollowingNode:
             self.image_lock.release()
             if im is not None:
                 self.update_controller(im)
+                self.stopline_processing(im)
+                self.controller.update()
             rate.sleep()
     
     def update_controller(self, im):
+        publish_flag = PUBLISH_IMAGE and PUBLISH_IMAGE_TYPE == 'yellow'
         hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
-
-        print(hsv[0, 0, :], hsv[479, 0, :], hsv[479, 639, :], hsv[0, 639, :])
-        print(f'center:{hsv[240, 320, :]}')
 
         lower_range = np.array([22,100,150])
         upper_range = np.array([30,255,255])
@@ -124,7 +132,8 @@ class LaneFollowingNode:
         contour_x = 0
         if largest_idx != -1:
             largest_ctn = contours[largest_idx]
-            im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
+            if publish_flag:
+                im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
             [vx,vy,x,y] = cv2.fitLine(largest_ctn, cv2.DIST_L2,0,0.01,0.01)
             vx, vy = vx[0], vy[0]
             if vx + vy > 0:
@@ -162,9 +171,11 @@ class LaneFollowingNode:
         adjust = max(min(adjust, .9), -.9)
         left_speed = self.speed * (1 - adjust)
         right_speed = self.speed * (1 + adjust)
-        # self.controller.drive(left_speed, right_speed)
+        
+        if not self.controller.isTurning():
+            self.controller.driveForTime(left_speed, right_speed, 1)
 
-        if PUBLISH_IMAGE:
+        if publish_flag:
             ARROW_LENGTH = 50
             if largest_idx !=-1:
                 if angle_error != 0:
@@ -180,6 +191,73 @@ class LaneFollowingNode:
                     (int(contour_x + position_error), int(contour_y)), 
                     (int(contour_x + position_error), int(contour_y - ARROW_LENGTH)), 
                     (0, 0, 255), 3)
+            msg = CompressedImage()
+            msg.header.seq = self.seq
+            msg.header.stamp = rospy.Time.now()
+            msg.format = 'jpeg'
+            ret, buffer = cv2.imencode('.jpg', im)
+            if not ret:
+                print('failed to encode image!')
+            else:
+                msg.data = np.array(buffer).tostring()
+                self.pub.publish(msg)
+                self.seq += 1
+    
+    def stopline_processing(self, im):
+        publish_flag = PUBLISH_IMAGE and PUBLISH_IMAGE_TYPE == 'red'
+        hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+
+        lower_range = np.array([0,130,130])
+        upper_range = np.array([5,170,255])
+
+        red_mask = cv2.inRange(hsv, lower_range, upper_range)
+        img_dilation = cv2.dilate(red_mask, np.ones((10, 10), np.uint8), iterations=1)
+
+        contours, hierarchy = cv2.findContours(img_dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # pick the largest contour
+        largest_area = 0
+        largest_idx = -1
+        for i in range(len(contours)):
+            ctn = contours[i]
+            area = cv2.contourArea(ctn)
+
+            xmin, ymin, width, height = cv2.boundingRect(ctn)
+            midx, midy = xmin + .5 * width, ymin + .5 * height
+            print(f'fond contour with x,y,area:({midx},{midy}) {area}')
+
+            if area > largest_area:
+                largest_area = area
+                largest_idx = i
+
+        contour_y = 0
+        if largest_idx != -1:
+            largest_ctn = contours[largest_idx]
+
+            print(f'largest area:{largest_area}')
+            if publish_flag:
+                im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
+
+            xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
+            contour_y = ymin + height * 0.5
+        
+        if contour_y > 240:  # approaching stop line
+            self.stop_timer -= 1
+        else:  # not approaching stop line
+            self.stop_timer = min(self.stop_timer + 1, self.stop_timer_max)
+        
+        if self.stop_timer <= 0:  # prepare to go into intersection
+            self.stop_timer = self.stop_timer_max
+            # for now, always turn right
+            self.controller.driveForTime(1.8, .2, PROCESSING_RATE * .75)
+        else:
+            if contour_y > 440 or self.stop_timer < 8:
+                self.speed = 0
+            elif self.stop_timer < self.stop_timer_max - 3:
+                self.speed = .67 * self.max_speed
+                
+
+        if publish_flag:
             msg = CompressedImage()
             msg.header.seq = self.seq
             msg.header.stamp = rospy.Time.now()
