@@ -231,7 +231,7 @@ class LaneFollowingNode:
 
             # detect which way we can turn to
             lenq = len(self.controller.actions_queue)
-            if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33):
+            if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
                 if len(self.controller.actions_queue) == 4:  # forward-facing
                     if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
                         print(f'case1 {midx}, {midy}')
@@ -297,9 +297,9 @@ class LaneFollowingNode:
             self.turn_flag = True
 
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-            self.controller.driveForTime(-.8 * self.max_speed, .8, PROCESSING_RATE * .25)
+            self.controller.driveForTime(-.67 * self.max_speed, .67, PROCESSING_RATE * .25)
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-            self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .2)
+            self.controller.driveForTime(.67, -.67, PROCESSING_RATE * .16)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
