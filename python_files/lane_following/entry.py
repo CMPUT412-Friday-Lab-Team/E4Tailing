@@ -294,6 +294,7 @@ class LaneFollowingNode:
             self.stop_timer = self.stop_timer_default + 30
             # for now, always turn right
             self.turn_flag = True
+            print('inserting actions')
             self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
             self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
