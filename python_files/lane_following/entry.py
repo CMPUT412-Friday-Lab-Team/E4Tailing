@@ -278,10 +278,10 @@ class LaneFollowingNode:
                     self.controller.driveForTime(.8 * self.speed, 1.2 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 1:
                     print('making a forward turn')
-                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.)
+                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * .85)
                 elif turn_idx == 2:
                     print('making a right turn')
-                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
+                    self.controller.driveForTime(1.67 * self.speed, .43 * self.speed, PROCESSING_RATE * .75)
 
                 # reset the detection list since we are out of the intersection after the turn
                 for i in range(len(self.turn_detection)):
@@ -299,7 +299,7 @@ class LaneFollowingNode:
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
             self.controller.driveForTime(-.8 * self.max_speed, .8, PROCESSING_RATE * .25)
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-            self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .15)
+            self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .2)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
