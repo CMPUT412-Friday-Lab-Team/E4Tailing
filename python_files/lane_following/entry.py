@@ -240,7 +240,7 @@ class LaneFollowingNode:
                     elif midx < im.shape[1] * 0.9:
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
-                elif len(self.controller.actions_queue) == 2:  # left-facing
+                elif len(self.controller.actions_queue) <= 2:  # left-facing
                     if midx < im.shape[1] * .5:
                         print(f'case3 {midx}, {midy}')
                         self.turn_detection[0] += 1
@@ -274,10 +274,10 @@ class LaneFollowingNode:
                 self.speed = self.max_speed
                 if turn_idx == 0:
                     print('making a left turn')
-                    self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * 1.25)
+                    self.controller.driveForTime(.7 * self.speed, 1.3 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 1:
                     print('making a forward turn')
-                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * 1.25)
+                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 2:
                     print('making a right turn')
                     self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * 1.)
@@ -288,10 +288,10 @@ class LaneFollowingNode:
                 self.turn_flag = False
                 self.stop_timer = self.stop_timer_default + 30
 
-        if contour_y > 400 or (contour_y > 390 and self.stop_timer < self.stop_timer_default):
+        if self.stop_timer <= self.stop_timer_default and \
+            (contour_y > 400 or (contour_y > 390 and self.stop_timer < self.stop_timer_default)):
             print('zeroing velocity')
-            if self.stop_timer <= self.stop_timer_default:
-                self.speed = 0
+            self.speed = 0
             self.stop_timer -= 1
             if self.stop_timer <= 0:  # prepare to go into intersection
                 self.stop_timer = self.stop_timer_default + 9999
