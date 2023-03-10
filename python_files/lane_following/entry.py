@@ -235,15 +235,31 @@ class LaneFollowingNode:
                 if len(self.controller.actions_queue) == 4:  # forward-facing
                     if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
                         print(f'case1 {midx}, {midy}')
+                        cv2.arrowedLine(im,
+                            (int(midx), int(midy)), 
+                            (int(midx), int(midy + 10)), 
+                            (0, 255, 0), 3)
                         self.turn_detection[1] += .5
                     elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
+                        cv2.arrowedLine(im,
+                            (int(midx), int(midy)), 
+                            (int(midx), int(midy + 10)), 
+                            (0, 0, 255), 3)
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
                 elif len(self.controller.actions_queue) == 2:  # left-facing
                     if midx < im.shape[1] * .5:
+                        cv2.arrowedLine(im,
+                            (int(midx), int(midy)), 
+                            (int(midx), int(midy + 10)), 
+                            (255, 0, 0), 3)
                         print(f'case3 {midx}, {midy}')
                         self.turn_detection[0] += 1
                     else:
+                        cv2.arrowedLine(im,
+                            (int(midx), int(midy)), 
+                            (int(midx), int(midy + 10)), 
+                            (0, 255, 0), 3)
                         print(f'case4 {midx}, {midy}')
                         self.turn_detection[1] += .5
                 print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
@@ -263,7 +279,6 @@ class LaneFollowingNode:
             contour_y = ymin + height * 0.5
 
         if self.turn_flag:
-            print(f'turn flag true, {len(self.controller.actions_queue)}')
             if self.controller.actionQueueIsEmpty():
                 # make a turn
                 min_idx = 0
@@ -309,7 +324,6 @@ class LaneFollowingNode:
 
         if publish_flag:
             contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            im = cv2.drawContours(im, contours, -1, (0,255,0), 3)
 
             msg = CompressedImage()
             msg.header.seq = self.seq
