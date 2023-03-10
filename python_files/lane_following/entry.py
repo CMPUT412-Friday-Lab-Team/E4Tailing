@@ -42,8 +42,8 @@ class LaneFollowingNode:
         self.max_speed = 0.55  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
 
-        self.stop_timer_max = PROCESSING_RATE * 2  # time before stopping after seeing a red line
-        self.stop_timer = self.stop_timer_max  # current timer, maxed out at self.stop_timer_max
+        self.stop_timer_default = PROCESSING_RATE * .5  # time before stopping after seeing a red line
+        self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
 
 
         self.continue_run = True
@@ -148,7 +148,7 @@ class LaneFollowingNode:
             if contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
                 angle_error = 0.
 
-            down_right_pt_x = 320. + 120. * (self.stop_timer / self.stop_timer_max)
+            down_right_pt_x = 320. + 120. * (self.stop_timer / self.stop_timer_default)
             position_line_ref = np.cross(
                 np.array((im.shape[1] * 0.5, 130.5, 1.)), 
                 np.array((70., down_right_pt_x, 1.)))
@@ -208,7 +208,7 @@ class LaneFollowingNode:
         publish_flag = PUBLISH_IMAGE and PUBLISH_IMAGE_TYPE == 'red'
         hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
-        lower_range = np.array([0,120,120])
+        lower_range = np.array([0,100,120])
         upper_range = np.array([5,180,255])
 
         red_mask = cv2.inRange(hsv, lower_range, upper_range)
@@ -242,20 +242,21 @@ class LaneFollowingNode:
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
         
-        if contour_y > 240:  # approaching stop line
-            self.stop_timer -= 1
-        else:  # not approaching stop line
-            self.stop_timer = min(self.stop_timer + 1, self.stop_timer_max)
-        
-        if self.stop_timer <= 0:  # prepare to go into intersection
-            self.stop_timer = self.stop_timer_max
-            # for now, always turn right
-            self.controller.driveForTime(1.8, .2, PROCESSING_RATE * .75)
-        else:
-            if contour_y > 440 or self.stop_timer < 8:
+        print(contour_y)
+        if contour_y > 430:  # approaching stop line
+            if contour_y > 440:
                 self.speed = 0
-            elif self.stop_timer < self.stop_timer_max - 3:
-                self.speed = .8 * self.max_speed
+                self.stop_timer -= 1
+            if self.stop_timer <= 0:  # prepare to go into intersection
+                self.stop_timer = self.stop_timer_default + 30
+                # for now, always turn right
+                self.controller.driveForTime(1.8, .2, PROCESSING_RATE * .75)
+        else:  # not approaching stop line
+            self.speed = self.max_speed
+            if self.stop_timer > self.stop_timer_default:
+                self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
+            else:
+                self.stop_timer = min(self.stop_timer + 1, self.stop_timer_default)
                 
 
         if publish_flag:
