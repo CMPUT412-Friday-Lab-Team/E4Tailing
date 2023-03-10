@@ -283,7 +283,9 @@ class LaneFollowingNode:
                     self.turn_detection[i] = 0
                 self.turn_flag = False
 
+        print(contour_y)
         if contour_y > 430 or (contour_y > 420 and self.stop_timer < self.stop_timer_default):
+            print("stopping")
             self.speed = 0
             self.stop_timer -= 1
         if self.stop_timer <= 0:  # prepare to go into intersection
