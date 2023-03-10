@@ -217,8 +217,6 @@ class LaneFollowingNode:
 
         contours, hierarchy = cv2.findContours(img_dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        left, right = self.controller.getCurrentSpeeds()
-        vehicle_is_waiting = abs(left) + abs(right) < .1
         # pick the largest contour
         largest_area = 0
         largest_idx = -1
@@ -232,15 +230,16 @@ class LaneFollowingNode:
             midx, midy = xmin + .5 * width, ymin + .5 * height
 
             # detect which way we can turn to
-            if vehicle_is_waiting and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33):
-                if len(self.controller.actions_queue) > 2:  # forward-facing
-                    if midx < im.shape[1] * 0.45:
+            lenq = len(self.controller.actions_queue)
+            if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33):
+                if len(self.controller.actions_queue) == 4:  # forward-facing
+                    if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
                         print(f'case1 {midx}, {midy}')
                         self.turn_detection[1] += .5
-                    elif midx < im.shape[1] * 0.9:
+                    elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
-                elif len(self.controller.actions_queue) <= 2:  # left-facing
+                elif len(self.controller.actions_queue) == 2:  # left-facing
                     if midx < im.shape[1] * .5:
                         print(f'case3 {midx}, {midy}')
                         self.turn_detection[0] += 1
