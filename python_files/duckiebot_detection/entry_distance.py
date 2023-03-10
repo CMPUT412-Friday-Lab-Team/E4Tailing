@@ -111,13 +111,16 @@ class DuckiebotDistanceNode(DTROS):
 
 
                 else:
+                    self.pub_distance_to_robot_ahead.publish(Float32(0))
                     print(
                         "Pose estimation failed, too high reprojection error. "
                         "Reporting detection at 0cm for safety."
                     )
             else:
+                self.pub_distance_to_robot_ahead.publish(Float32(0))
                 print("Pose estimation failed. " "Reporting detection at 0cm for safety.")
-
+        else:
+            self.pub_distance_to_robot_ahead.publish(Float32(-1))
 
     def calc_circle_pattern(self, height, width):
         """
