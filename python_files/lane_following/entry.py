@@ -148,9 +148,10 @@ class LaneFollowingNode:
             if contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
                 angle_error = 0.
 
+            down_right_pt_x = 320. + 120. * (self.stop_timer / self.stop_timer_max)
             position_line_ref = np.cross(
                 np.array((im.shape[1] * 0.5, 130.5, 1.)), 
-                np.array((70., 440., 1.)))
+                np.array((70., down_right_pt_x, 1.)))
             position_line_ref /= position_line_ref[0]
             position_ref = -position_line_ref[2].item() - contour_y * position_line_ref[1].item()
             position_error = position_ref - contour_x
@@ -207,8 +208,8 @@ class LaneFollowingNode:
         publish_flag = PUBLISH_IMAGE and PUBLISH_IMAGE_TYPE == 'red'
         hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
-        lower_range = np.array([0,130,130])
-        upper_range = np.array([5,170,255])
+        lower_range = np.array([0,120,120])
+        upper_range = np.array([5,180,255])
 
         red_mask = cv2.inRange(hsv, lower_range, upper_range)
         img_dilation = cv2.dilate(red_mask, np.ones((10, 10), np.uint8), iterations=1)
@@ -223,10 +224,10 @@ class LaneFollowingNode:
             area = cv2.contourArea(ctn)
 
             xmin, ymin, width, height = cv2.boundingRect(ctn)
-            midx, midy = xmin + .5 * width, ymin + .5 * height
-            print(f'fond contour with x,y,area:({midx},{midy}) {area}')
+            xmax = xmin + width
+            # midx, midy = xmin + .5 * width, ymin + .5 * height
 
-            if area > largest_area:
+            if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
                 largest_idx = i
 
@@ -234,7 +235,6 @@ class LaneFollowingNode:
         if largest_idx != -1:
             largest_ctn = contours[largest_idx]
 
-            print(f'largest area:{largest_area}')
             if publish_flag:
                 im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
 
@@ -254,7 +254,7 @@ class LaneFollowingNode:
             if contour_y > 440 or self.stop_timer < 8:
                 self.speed = 0
             elif self.stop_timer < self.stop_timer_max - 3:
-                self.speed = .67 * self.max_speed
+                self.speed = .8 * self.max_speed
                 
 
         if publish_flag:
