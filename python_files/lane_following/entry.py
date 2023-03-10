@@ -286,13 +286,15 @@ class LaneFollowingNode:
                 for i in range(len(self.turn_detection)):
                     self.turn_detection[i] = 0
                 self.turn_flag = False
+                self.stop_timer = self.stop_timer_default + 30
 
-        print(self.speed)
         if contour_y > 400 or (contour_y > 390 and self.stop_timer < self.stop_timer_default):
-            self.speed = 0
+            print('zeroing velocity')
+            if self.stop_timer <= self.stop_timer_default:
+                self.speed = 0
             self.stop_timer -= 1
             if self.stop_timer <= 0:  # prepare to go into intersection
-                self.stop_timer = self.stop_timer_default + 30
+                self.stop_timer = self.stop_timer_default + 9999
                 # for now, always turn right
                 self.turn_flag = True
                 print('inserting actions')
