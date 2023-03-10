@@ -56,6 +56,13 @@ class KineticController:
     def actionQueueIsEmpty(self):
         return len(self.actions_queue) == 0
 
+    def getCurrentSpeeds(self):
+        if len(self.actions_queue) == 0:
+            return .0, .0
+        else:
+            left, right, time = self.actions_queue[0]
+            return left, right
+
     def update(self):
         if len(self.actions_queue) == 0:
             self.drive(0., 0.)

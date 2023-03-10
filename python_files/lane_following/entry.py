@@ -42,6 +42,7 @@ class LaneFollowingNode:
         self.max_speed = 0.55  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
 
+        self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
         self.turn_detection = [0., 0., 0.]  # detecting if the left, forward and right direction of an intersection has a road to turn to
@@ -216,6 +217,8 @@ class LaneFollowingNode:
 
         contours, hierarchy = cv2.findContours(img_dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        left, right = self.controller.getCurrentSpeeds()
+        vehicle_is_waiting = abs(left) + abs(right) < .1
         # pick the largest contour
         largest_area = 0
         largest_idx = -1
@@ -227,16 +230,22 @@ class LaneFollowingNode:
             xmax = xmin + width
             midx, midy = xmin + .5 * width, ymin + .5 * height
 
-            if area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33:
-                if midx < im.shape[1] * 0.45:
-                    print(f'case1 {midx}, {midy}')
-                elif midx < im.shape[1] * 0.9:
-                    print(f'case2 {midx}, {midy}')
-                if midx < im.shape[1] * .5:
-                    print(f'case3 {midx}, {midy}')
-                else:
-                    print(f'case4 {midx}, {midy}')
-
+            # detect which way we can turn to
+            if vehicle_is_waiting and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33):
+                if len(self.controller.actions_queue) > 2:  # forward-facing
+                    if midx < im.shape[1] * 0.45:
+                        print(f'case1 {midx}, {midy}')
+                        self.turn_detection[1] += .5
+                    elif midx < im.shape[1] * 0.9:
+                        print(f'case2 {midx}, {midy}')
+                        self.turn_detection[2] += 1
+                else:  # left-facing
+                    if midx < im.shape[1] * .5:
+                        print(f'case3 {midx}, {midy}')
+                        self.turn_detection[0] += 1
+                    else:
+                        print(f'case4 {midx}, {midy}')
+                        self.turn_detection[1] += .5
 
             if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
@@ -252,16 +261,38 @@ class LaneFollowingNode:
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
 
-        if contour_y > 430 or contour_y > 420 and self.stop_timer < self.stop_timer_default:
+        if self.turn_flag:
+            if self.controller.actionQueueIsEmpty():
+                # make a turn
+                min_idx = 0
+                for i in range(1, len(self.turn_detection)):
+                    if self.turn_detection[i] < self.turn_detection[0]:
+                        min_idx = i
+                turn_idx = (min_idx + 1) % 3
+
+                self.speed = self.max_speed
+                if turn_idx == 0:
+                    self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * .75)
+                elif turn_idx == 1:
+                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * .75)
+                elif turn_idx == 2:
+                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
+
+                # reset the detection list since we are out of the intersection after the turn
+                for i in range(len(self.turn_detection)):
+                    self.turn_detection[i] = 0
+                self.turn_flag = False
+
+        if contour_y > 430 or (contour_y > 420 and self.stop_timer < self.stop_timer_default):
             self.speed = 0
             self.stop_timer -= 1
         if self.stop_timer <= 0:  # prepare to go into intersection
             self.stop_timer = self.stop_timer_default + 30
             # for now, always turn right
+            self.turn_flag = True
             self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
             self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
             self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
-            self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
         else:  # not approaching stop line
             self.speed = self.max_speed
             if self.stop_timer > self.stop_timer_default:
