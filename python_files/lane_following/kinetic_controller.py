@@ -54,7 +54,7 @@ class KineticController:
         self.pub.publish(msg)
     
     def actionQueueIsEmpty(self):
-        return self.actions_queue.empty()
+        return len(self.actions_queue) == 0
 
     def update(self):
         if self.actions_queue.empty():
