@@ -232,6 +232,7 @@ class LaneFollowingNode:
                 largest_idx = i
 
         contour_y = 0
+        print(self.stop_timer)
         if largest_idx != -1:
             largest_ctn = contours[largest_idx]
 
@@ -258,7 +259,9 @@ class LaneFollowingNode:
                 
 
         if publish_flag:
-            im[red_mask[:, :, np.newaxis]] = 255
+            contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            im = cv2.drawContours(im, contours, -1, (0,255,0), 3)
+
             msg = CompressedImage()
             msg.header.seq = self.seq
             msg.header.stamp = rospy.Time.now()
