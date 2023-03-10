@@ -222,6 +222,7 @@ class LaneFollowingNode:
         # pick the largest contour
         largest_area = 0
         largest_idx = -1
+        print(f'len of action queue {len(self.controller.actions_queue)}')
         for i in range(len(contours)):
             ctn = contours[i]
             area = cv2.contourArea(ctn)
@@ -272,10 +273,13 @@ class LaneFollowingNode:
 
                 self.speed = self.max_speed
                 if turn_idx == 0:
+                    print('making a left turn')
                     self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * .75)
                 elif turn_idx == 1:
+                    print('making a forward turn')
                     self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * .75)
                 elif turn_idx == 2:
+                    print('making a right turn')
                     self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
 
                 # reset the detection list since we are out of the intersection after the turn
@@ -283,7 +287,6 @@ class LaneFollowingNode:
                     self.turn_detection[i] = 0
                 self.turn_flag = False
 
-        print(contour_y)
         if contour_y > 420 or (contour_y > 410 and self.stop_timer < self.stop_timer_default):
             self.speed = 0
             self.stop_timer -= 1
