@@ -42,9 +42,9 @@ class LaneFollowingNode:
         self.max_speed = 0.55  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
 
-        self.stop_timer_default = PROCESSING_RATE * .5  # time before stopping after seeing a red line
+        self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
-
+        self.turn_detection = [0., 0., 0.]  # detecting if the left, forward and right direction of an intersection has a road to turn to
 
         self.continue_run = True
         self.last_angle_error = 0.
@@ -173,7 +173,7 @@ class LaneFollowingNode:
         left_speed = self.speed * (1 - adjust)
         right_speed = self.speed * (1 + adjust)
         
-        if not self.controller.isTurning():
+        if self.controller.actionQueueIsEmpty():
             self.controller.driveForTime(left_speed, right_speed, 1)
 
         if publish_flag:
@@ -208,7 +208,7 @@ class LaneFollowingNode:
         publish_flag = PUBLISH_IMAGE and PUBLISH_IMAGE_TYPE == 'red'
         hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
-        lower_range = np.array([0,100,120])
+        lower_range = np.array([0,70,120])
         upper_range = np.array([5,180,255])
 
         red_mask = cv2.inRange(hsv, lower_range, upper_range)
@@ -225,14 +225,24 @@ class LaneFollowingNode:
 
             xmin, ymin, width, height = cv2.boundingRect(ctn)
             xmax = xmin + width
-            # midx, midy = xmin + .5 * width, ymin + .5 * height
+            midx, midy = xmin + .5 * width, ymin + .5 * height
+
+            if area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33:
+                if midx < im.shape[1] * 0.45:
+                    print(f'case1 {midx}, {midy}')
+                elif midx < im.shape[1] * 0.9:
+                    print(f'case2 {midx}, {midy}')
+                if midx < im.shape[1] * .5:
+                    print(f'case3 {midx}, {midy}')
+                else:
+                    print(f'case4 {midx}, {midy}')
+
 
             if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
                 largest_idx = i
 
         contour_y = 0
-        print(self.stop_timer)
         if largest_idx != -1:
             largest_ctn = contours[largest_idx]
 
@@ -241,16 +251,17 @@ class LaneFollowingNode:
 
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
-        
-        print(contour_y)
-        if contour_y > 430:  # approaching stop line
-            if contour_y > 440:
-                self.speed = 0
-                self.stop_timer -= 1
-            if self.stop_timer <= 0:  # prepare to go into intersection
-                self.stop_timer = self.stop_timer_default + 30
-                # for now, always turn right
-                self.controller.driveForTime(1.8, .2, PROCESSING_RATE * .75)
+
+        if contour_y > 430 or contour_y > 420 and self.stop_timer < self.stop_timer_default:
+            self.speed = 0
+            self.stop_timer -= 1
+        if self.stop_timer <= 0:  # prepare to go into intersection
+            self.stop_timer = self.stop_timer_default + 30
+            # for now, always turn right
+            self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
+            self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
+            self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
+            self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
         else:  # not approaching stop line
             self.speed = self.max_speed
             if self.stop_timer > self.stop_timer_default:

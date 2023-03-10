@@ -39,7 +39,7 @@ class KineticController:
         self.adjustment = 0
 
         self.turn_timer = 0
-        self.left_speed = 0.
+        self.actions_queue = []
     
     def stop(self):
         """
@@ -53,20 +53,22 @@ class KineticController:
         msg.vel_right = right_speed
         self.pub.publish(msg)
     
-    def isTurning(self):
-        return self.turn_timer > 0
+    def actionQueueIsEmpty(self):
+        return self.actions_queue.empty()
 
     def update(self):
-        if self.turn_timer > 0:
-            self.drive(self.left_speed, self.right_speed)
-            self.turn_timer -= 1
-        else:
+        if self.actions_queue.empty():
             self.drive(0., 0.)
+        else:
+            left_speed, right_speed, time = self.actions_queue[0]
+            self.drive(left_speed, right_speed)
+            if time <= 1:
+                self.actions_queue.pop(0)
+            else:
+                self.actions_queue[0] = (left_speed, right_speed, time - 1)
 
     def driveForTime(self, left_speed, right_speed, ntime_step):
-        self.turn_timer = ntime_step
-        self.left_speed = left_speed
-        self.right_speed = right_speed
+        self.actions_queue.append((left_speed, right_speed, ntime_step))
     
     def update_error(self, angle_error, position_error):
         #print(angle_error)
