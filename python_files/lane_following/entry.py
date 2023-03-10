@@ -275,10 +275,10 @@ class LaneFollowingNode:
                 self.speed = self.max_speed
                 if turn_idx == 0:
                     print('making a left turn')
-                    self.controller.driveForTime(.7 * self.speed, 1.3 * self.speed, PROCESSING_RATE * .9)
+                    self.controller.driveForTime(.7 * self.speed, 1.3 * self.speed, PROCESSING_RATE * 1.6)
                 elif turn_idx == 1:
                     print('making a forward turn')
-                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * .85)
+                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5)
                 elif turn_idx == 2:
                     print('making a right turn')
                     self.controller.driveForTime(1.67 * self.speed, .43 * self.speed, PROCESSING_RATE * .75)
