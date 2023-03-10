@@ -290,14 +290,14 @@ class LaneFollowingNode:
         if contour_y > 420 or (contour_y > 410 and self.stop_timer < self.stop_timer_default):
             self.speed = 0
             self.stop_timer -= 1
-        if self.stop_timer <= 0:  # prepare to go into intersection
-            self.stop_timer = self.stop_timer_default + 30
-            # for now, always turn right
-            self.turn_flag = True
-            print('inserting actions')
-            self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
-            self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
-            self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
+            if self.stop_timer <= 0:  # prepare to go into intersection
+                self.stop_timer = self.stop_timer_default + 30
+                # for now, always turn right
+                self.turn_flag = True
+                print('inserting actions')
+                self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
+                self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
+                self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
