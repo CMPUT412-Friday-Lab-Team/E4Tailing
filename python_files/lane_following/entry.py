@@ -222,7 +222,7 @@ class LaneFollowingNode:
         # pick the largest contour
         largest_area = 0
         largest_idx = -1
-        print(f'len of action queue {len(self.controller.actions_queue)}')
+        # print(f'len of action queue {len(self.controller.actions_queue)}')
         for i in range(len(contours)):
             ctn = contours[i]
             area = cv2.contourArea(ctn)
@@ -263,6 +263,7 @@ class LaneFollowingNode:
             contour_y = ymin + height * 0.5
 
         if self.turn_flag:
+            print(f'turn flag true, {len(self.controller.actions_queue)}')
             if self.controller.actionQueueIsEmpty():
                 # make a turn
                 min_idx = 0
@@ -289,18 +290,16 @@ class LaneFollowingNode:
                 self.stop_timer = self.stop_timer_default + 30
 
         if self.stop_timer <= self.stop_timer_default and \
-            (contour_y > 400 or (contour_y > 390 and self.stop_timer < self.stop_timer_default)):
+            (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
             print('zeroing velocity')
             self.speed = 0
-            self.stop_timer -= 1
-            if self.stop_timer <= 0:  # prepare to go into intersection
-                self.stop_timer = self.stop_timer_default + 9999
-                # for now, always turn right
-                self.turn_flag = True
-                print('inserting actions')
-                self.controller.driveForTime(-.8 * self.max_speed, .8, PROCESSING_RATE * .25)
-                self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-                self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .15)
+            self.stop_timer = self.stop_timer_default + 9999
+            self.turn_flag = True
+
+            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
+            self.controller.driveForTime(-.8 * self.max_speed, .8, PROCESSING_RATE * .25)
+            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
+            self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .15)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
