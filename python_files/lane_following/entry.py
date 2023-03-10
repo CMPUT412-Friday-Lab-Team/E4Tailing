@@ -274,13 +274,13 @@ class LaneFollowingNode:
                 self.speed = self.max_speed
                 if turn_idx == 0:
                     print('making a left turn')
-                    self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * 1.5)
+                    self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 1:
                     print('making a forward turn')
-                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * 1.5)
+                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * 1.)
                 elif turn_idx == 2:
                     print('making a right turn')
-                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * 1.5)
+                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * 1.25)
 
                 # reset the detection list since we are out of the intersection after the turn
                 for i in range(len(self.turn_detection)):
