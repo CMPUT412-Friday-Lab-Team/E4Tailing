@@ -239,7 +239,7 @@ class LaneFollowingNode:
                             (int(midx), int(midy)), 
                             (int(midx), int(midy + 10)), 
                             (0, 255, 0), 3)
-                        self.turn_detection[1] += .5
+                        self.turn_detection[1] += 1
                     elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
                         cv2.arrowedLine(im,
                             (int(midx), int(midy)), 
@@ -267,6 +267,7 @@ class LaneFollowingNode:
             if self.controller.actionQueueIsEmpty():
                 # make a turn
                 min_idx = 0
+                self.turn_detection[0] += 5
                 for i in range(1, len(self.turn_detection)):
                     if self.turn_detection[i] < self.turn_detection[0]:
                         min_idx = i
