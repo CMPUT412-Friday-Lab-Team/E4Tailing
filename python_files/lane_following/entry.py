@@ -167,14 +167,14 @@ class LaneFollowingNode:
             position_error = self.last_position_error
         
         position_error = max(position_error, -280.)
-        self.controller.update_error(angle_error, position_error)
-        adjust = self.controller.get_adjustment()
-
-        adjust = max(min(adjust, .9), -.9)
-        left_speed = self.speed * (1 - adjust)
-        right_speed = self.speed * (1 + adjust)
         
         if self.controller.actionQueueIsEmpty():
+            self.controller.update_error(angle_error, position_error)
+            adjust = self.controller.get_adjustment()
+
+            adjust = max(min(adjust, .9), -.9)
+            left_speed = self.speed * (1 - adjust)
+            right_speed = self.speed * (1 + adjust)
             self.controller.driveForTime(left_speed, right_speed, 1)
 
         if publish_flag:
