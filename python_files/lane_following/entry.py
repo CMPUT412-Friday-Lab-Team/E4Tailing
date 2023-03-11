@@ -38,15 +38,15 @@ class LaneFollowingNode:
         self.duckie_distance = None
         self.duckie_detected = False
         
-
         ANGLE_MULT = 0.
         POSITION_MULT = 1.
         self.controller = kinetic_controller.KineticController(
             (ANGLE_MULT * .3, ANGLE_MULT * .002, ANGLE_MULT * -3), 
             (POSITION_MULT * .005, POSITION_MULT * .00005, POSITION_MULT * -.0))
         
-        self.max_speed = 0.55  # top speed when driving in a single lane
+        self.max_speed = 0.48  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
+        self.correct_x = 1
 
         self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
@@ -174,7 +174,7 @@ class LaneFollowingNode:
             if contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
                 angle_error = 0.
 
-            down_right_pt_x = 320. + 120. * (self.stop_timer / self.stop_timer_default)
+            down_right_pt_x = 320. + 120. * self.correct_x
             position_line_ref = np.cross(
                 np.array((im.shape[1] * 0.5, 130.5, 1.)), 
                 np.array((70., down_right_pt_x, 1.)))
@@ -192,14 +192,14 @@ class LaneFollowingNode:
             position_error = self.last_position_error
         
         position_error = max(position_error, -280.)
-        self.controller.update_error(angle_error, position_error)
-        adjust = self.controller.get_adjustment()
-
-        adjust = max(min(adjust, .9), -.9)
-        left_speed = self.speed * (1 - adjust)
-        right_speed = self.speed * (1 + adjust)
         
         if self.controller.actionQueueIsEmpty():
+            self.controller.update_error(angle_error, position_error)
+            adjust = self.controller.get_adjustment()
+
+            adjust = max(min(adjust, .9), -.9)
+            left_speed = self.speed * (1 - adjust)
+            right_speed = self.speed * (1 + adjust)
             self.controller.driveForTime(left_speed, right_speed, 1)
 
         if publish_flag:
@@ -242,11 +242,10 @@ class LaneFollowingNode:
 
         contours, hierarchy = cv2.findContours(img_dilation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        left, right = self.controller.getCurrentSpeeds()
-        vehicle_is_waiting = abs(left) + abs(right) < .1
         # pick the largest contour
         largest_area = 0
         largest_idx = -1
+        # print(f'len of action queue {len(self.controller.actions_queue)}')
         for i in range(len(contours)):
             ctn = contours[i]
             area = cv2.contourArea(ctn)
@@ -256,21 +255,24 @@ class LaneFollowingNode:
             midx, midy = xmin + .5 * width, ymin + .5 * height
 
             # detect which way we can turn to
-            if vehicle_is_waiting and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.33):
-                if len(self.controller.actions_queue) > 2:  # forward-facing
-                    if midx < im.shape[1] * 0.45:
+            lenq = len(self.controller.actions_queue)
+            if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
+                if len(self.controller.actions_queue) == 2:  # forward-facing
+                    if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
                         print(f'case1 {midx}, {midy}')
-                        self.turn_detection[1] += .5
-                    elif midx < im.shape[1] * 0.9:
+                        cv2.arrowedLine(im,
+                            (int(midx), int(midy)), 
+                            (int(midx), int(midy + 10)), 
+                            (0, 255, 0), 3)
+                        self.turn_detection[1] += 1
+                    elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
+                        cv2.arrowedLine(im,
+                            (int(midx), int(midy)), 
+                            (int(midx), int(midy + 10)), 
+                            (0, 0, 255), 3)
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
-                else:  # left-facing
-                    if midx < im.shape[1] * .5:
-                        print(f'case3 {midx}, {midy}')
-                        self.turn_detection[0] += 1
-                    else:
-                        print(f'case4 {midx}, {midy}')
-                        self.turn_detection[1] += .5
+                print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
 
             if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
@@ -280,8 +282,8 @@ class LaneFollowingNode:
         if largest_idx != -1:
             largest_ctn = contours[largest_idx]
 
-            if publish_flag:
-                im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
+            # if publish_flag:
+            #     im = cv2.drawContours(im, contours, largest_idx, (0,255,0), 3)
 
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
@@ -290,6 +292,7 @@ class LaneFollowingNode:
             if self.controller.actionQueueIsEmpty():
                 # make a turn
                 min_idx = 0
+                self.turn_detection[0] += 5
                 for i in range(1, len(self.turn_detection)):
                     if self.turn_detection[i] < self.turn_detection[0]:
                         min_idx = i
@@ -297,28 +300,33 @@ class LaneFollowingNode:
 
                 self.speed = self.max_speed
                 if turn_idx == 0:
-                    self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * .75)
+                    print('making a left turn')
+                    self.controller.driveForTime(.58 * self.speed, 1.42 * self.speed, PROCESSING_RATE * 2.)
                 elif turn_idx == 1:
-                    self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * .75)
+                    print('making a forward turn')
+                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5)
                 elif turn_idx == 2:
-                    self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
+                    print('making a right turn')
+                    self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75)
 
                 # reset the detection list since we are out of the intersection after the turn
                 for i in range(len(self.turn_detection)):
                     self.turn_detection[i] = 0
                 self.turn_flag = False
+                self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.5
 
-        print(contour_y)
-        if contour_y > 420 or (contour_y > 410 and self.stop_timer < self.stop_timer_default):
+        self.correct_x = (contour_y - 330) / (390 - 330)
+        self.correct_x = 1 - min(1, max(0, self.correct_x))
+
+        if self.stop_timer <= self.stop_timer_default and \
+            (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
+            print('zeroing velocity')
             self.speed = 0
-            self.stop_timer -= 1
-        if self.stop_timer <= 0:  # prepare to go into intersection
-            self.stop_timer = self.stop_timer_default + 30
-            # for now, always turn right
+            self.stop_timer = self.stop_timer_default + 9999
             self.turn_flag = True
-            self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
-            self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
-            self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
+
+            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
+            self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
@@ -327,7 +335,6 @@ class LaneFollowingNode:
                 
 
         if publish_flag:
-            contours, hierarchy = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             im = cv2.drawContours(im, contours, -1, (0,255,0), 3)
 
             msg = CompressedImage()
