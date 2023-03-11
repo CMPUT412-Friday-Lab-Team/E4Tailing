@@ -41,6 +41,7 @@ class LaneFollowingNode:
         
         self.max_speed = 0.48  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
+        self.correct_x = 1
 
         self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .5  # time before stopping after seeing a red line
@@ -149,7 +150,7 @@ class LaneFollowingNode:
             if contour_y >= 420 or (contour_x - refx) ** 2 + (contour_y - refy) ** 2 < 155 ** 2:
                 angle_error = 0.
 
-            down_right_pt_x = 320. + 120. * (self.stop_timer / self.stop_timer_default)
+            down_right_pt_x = 320. + 120. * self.correct_x
             position_line_ref = np.cross(
                 np.array((im.shape[1] * 0.5, 130.5, 1.)), 
                 np.array((70., down_right_pt_x, 1.)))
@@ -289,6 +290,9 @@ class LaneFollowingNode:
                     self.turn_detection[i] = 0
                 self.turn_flag = False
                 self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.5
+
+        self.correct_x = (contour_y - 330) / (390 - 330)
+        self.correct_x = 1 - min(1, max(0, self.correct_x))
 
         if self.stop_timer <= self.stop_timer_default and \
             (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
