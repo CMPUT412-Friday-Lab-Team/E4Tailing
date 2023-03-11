@@ -8,9 +8,10 @@ import yaml
 import sys
 from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 import rospkg
 import threading
+from duckietown_msgs.msg import BoolStamped, VehicleCorners
 
 import kinetic_controller
 
@@ -19,6 +20,7 @@ HOST_NAME = os.environ["VEHICLE_NAME"]
 PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
+SAFE_DRIVING_DISTANCE = 0.30
 
 
 class LaneFollowingNode:
@@ -27,11 +29,15 @@ class LaneFollowingNode:
         self.count = 0
         self.image_lock = threading.Lock()
         self.sub = rospy.Subscriber(f'/{HOST_NAME}/camera_node/image/compressed', CompressedImage, self.callback)
-
+        self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback)
+        self.sub_duckie_detection = rospy.Publisher(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_callback)
         if PUBLISH_IMAGE:
             self.pub = rospy.Publisher(f'/{HOST_NAME}/lane_following/compressed', CompressedImage, queue_size=10)
         self.image = None
         self.seq = 0
+        self.duckie_distance = None
+        self.duckie_detected = False
+        
 
         ANGLE_MULT = 0.
         POSITION_MULT = 1.
@@ -43,7 +49,7 @@ class LaneFollowingNode:
         self.speed = self.max_speed  # current speed
 
         self.turn_flag = False
-        self.stop_timer_default = PROCESSING_RATE * .5  # time before stopping after seeing a red line
+        self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
         self.turn_detection = [0., 0., 0.]  # detecting if the left, forward and right direction of an intersection has a road to turn to
 
@@ -65,7 +71,23 @@ class LaneFollowingNode:
             self.image_lock.acquire()
             self.image = im
             self.image_lock.release()
-    
+
+    def duckie_distance_callback(self, msg):
+        self.count += 1
+        if self.count % 2 == 0:
+            msg = np.frombuffer(msg.data, np.unit8)
+            self.duckie_distance = msg.distance
+            
+    def duckie_callback(self, msg):
+        self.count += 1
+        if self.count % 2 == 0:
+            msg = np.frombuffer(msg.data, np.unit8)
+            if not msg.detection: 
+                self.duckie_detected = False
+            else:
+                self.duckie_detected = True                
+                # 3. Wait longer at intersections
+
     def general_callback(self, msg):
         strs = msg.data.split()
         if len(strs) == 4:
@@ -93,11 +115,14 @@ class LaneFollowingNode:
             self.image_lock.acquire()
             im = self.image
             self.image_lock.release()
+            if self.duckie_distance < SAFE_DRIVING_DISTANCE:
+                self.controller.drive(0,0)
             if im is not None:
-                self.stopline_processing(im)
                 self.update_controller(im)
+                self.stopline_processing(im)
                 self.controller.update()
             rate.sleep()
+
     
     def update_controller(self, im):
         publish_flag = PUBLISH_IMAGE and PUBLISH_IMAGE_TYPE == 'yellow'
@@ -222,7 +247,6 @@ class LaneFollowingNode:
         # pick the largest contour
         largest_area = 0
         largest_idx = -1
-        print(f'len of action queue {len(self.controller.actions_queue)}')
         for i in range(len(contours)):
             ctn = contours[i]
             area = cv2.contourArea(ctn)
@@ -240,7 +264,7 @@ class LaneFollowingNode:
                     elif midx < im.shape[1] * 0.9:
                         print(f'case2 {midx}, {midy}')
                         self.turn_detection[2] += 1
-                elif len(self.controller.actions_queue) == 2:  # left-facing
+                else:  # left-facing
                     if midx < im.shape[1] * .5:
                         print(f'case3 {midx}, {midy}')
                         self.turn_detection[0] += 1
@@ -273,13 +297,10 @@ class LaneFollowingNode:
 
                 self.speed = self.max_speed
                 if turn_idx == 0:
-                    print('making a left turn')
                     self.controller.driveForTime(.6 * self.speed, 1.4 * self.speed, PROCESSING_RATE * .75)
                 elif turn_idx == 1:
-                    print('making a forward turn')
                     self.controller.driveForTime(1.2 * self.speed, .8 * self.speed, PROCESSING_RATE * .75)
                 elif turn_idx == 2:
-                    print('making a right turn')
                     self.controller.driveForTime(1.8 * self.speed, .2 * self.speed, PROCESSING_RATE * .75)
 
                 # reset the detection list since we are out of the intersection after the turn
@@ -287,18 +308,17 @@ class LaneFollowingNode:
                     self.turn_detection[i] = 0
                 self.turn_flag = False
 
-        print(self.stop_timer)
-        if contour_y > 400 or (contour_y > 390 and self.stop_timer < self.stop_timer_default):
+        print(contour_y)
+        if contour_y > 420 or (contour_y > 410 and self.stop_timer < self.stop_timer_default):
             self.speed = 0
             self.stop_timer -= 1
-            if self.stop_timer <= 0:  # prepare to go into intersection
-                self.stop_timer = self.stop_timer_default + 30
-                # for now, always turn right
-                self.turn_flag = True
-                print('inserting actions')
-                self.controller.driveForTime(-.8 * self.max_speed, .8, PROCESSING_RATE * .25)
-                self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-                self.controller.driveForTime(.8, -.8, PROCESSING_RATE * .15)
+        if self.stop_timer <= 0:  # prepare to go into intersection
+            self.stop_timer = self.stop_timer_default + 30
+            # for now, always turn right
+            self.turn_flag = True
+            self.controller.driveForTime(-1., 1., PROCESSING_RATE * .25)
+            self.controller.driveForTime(0., 0., PROCESSING_RATE * .25)
+            self.controller.driveForTime(1., -1., PROCESSING_RATE * .15)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
