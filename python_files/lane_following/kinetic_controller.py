@@ -56,26 +56,26 @@ class KineticController:
     def actionQueueIsEmpty(self):
         return len(self.actions_queue) == 0
 
-    def getCurrentSpeeds(self):
+    def getCurrentState(self):
         if len(self.actions_queue) == 0:
-            return .0, .0
+            return None
         else:
-            left, right, time = self.actions_queue[0]
-            return left, right
+            state = self.actions_queue[0][3]
+            return state
 
     def update(self):
         if len(self.actions_queue) == 0:
             self.drive(0., 0.)
         else:
-            left_speed, right_speed, time = self.actions_queue[0]
+            left_speed, right_speed, time, state = self.actions_queue[0]
             self.drive(left_speed, right_speed)
             if time <= 1:
                 self.actions_queue.pop(0)
             else:
-                self.actions_queue[0] = (left_speed, right_speed, time - 1)
+                self.actions_queue[0] = (left_speed, right_speed, time - 1, state)
 
-    def driveForTime(self, left_speed, right_speed, ntime_step):
-        self.actions_queue.append((left_speed, right_speed, ntime_step))
+    def driveForTime(self, left_speed, right_speed, ntime_step, state):
+        self.actions_queue.append((left_speed, right_speed, ntime_step, state))
     
     def update_error(self, angle_error, position_error):
         #print(angle_error)

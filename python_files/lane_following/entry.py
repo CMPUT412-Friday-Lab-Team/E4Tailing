@@ -21,6 +21,12 @@ PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
 SAFE_DRIVING_DISTANCE = 0.30
+SAFE_TURN_DISTANCE = SAFE_DRIVING_DISTANCE
+
+STATE_TOO_CLOSE = 0
+STATE_WAITING_FOR_TURN = 1
+STATE_DRIVING = 2
+STATE_TURNING = 3
 
 
 class LaneFollowingNode:
@@ -35,6 +41,7 @@ class LaneFollowingNode:
             self.pub = rospy.Publisher(f'/{HOST_NAME}/lane_following/compressed', CompressedImage, queue_size=10)
         self.image = None
         self.seq = 0
+        self.duckie_center = None
         self.duckie_distance = None
         self.duckie_detected = False
         
@@ -48,6 +55,7 @@ class LaneFollowingNode:
         self.speed = self.max_speed  # current speed
         self.correct_x = 1
 
+        self.car_too_close = False
         self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
@@ -73,20 +81,22 @@ class LaneFollowingNode:
             self.image_lock.release()
 
     def duckie_distance_callback(self, msg):
-        self.count += 1
-        if self.count % 2 == 0:
-            msg = np.frombuffer(msg.data, np.unit8)
-            self.duckie_distance = msg.distance
+        self.duckie_distance = msg.distance
             
     def duckie_callback(self, msg):
-        self.count += 1
-        if self.count % 2 == 0:
-            msg = np.frombuffer(msg.data, np.unit8)
-            if not msg.detection: 
-                self.duckie_detected = False
-            else:
-                self.duckie_detected = True                
-                # 3. Wait longer at intersections
+        if not msg.detection: 
+            self.duckie_detected = False
+        else:
+            self.duckie_detected = True                
+            # 3. Wait longer at intersections
+            corners_list = msg.corners
+            sumx, sumy = .0, .0
+            NUM_CORNERS = 21
+            for i in range(NUM_CORNERS):
+                corner = corners_list[i]
+                sumx += corner.x
+                sumy += corner.y
+            self.duckie_center = (sumx / NUM_CORNERS, sumy / NUM_CORNERS)
 
     def general_callback(self, msg):
         strs = msg.data.split()
@@ -116,7 +126,7 @@ class LaneFollowingNode:
             im = self.image
             self.image_lock.release()
             if self.duckie_distance < SAFE_DRIVING_DISTANCE:
-                self.controller.drive(0,0)
+                self.car_too_close = True
             if im is not None:
                 self.update_controller(im)
                 self.stopline_processing(im)
@@ -194,13 +204,19 @@ class LaneFollowingNode:
         position_error = max(position_error, -280.)
         
         if self.controller.actionQueueIsEmpty():
-            self.controller.update_error(angle_error, position_error)
-            adjust = self.controller.get_adjustment()
+            if self.car_too_close:
+                if self.turn_flag:
+                    self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
+                else:
+                    self.controller.driveForTime(0., 0., 1, STATE_TOO_CLOSE)
+            else:
+                self.controller.update_error(angle_error, position_error)
+                adjust = self.controller.get_adjustment()
 
-            adjust = max(min(adjust, .9), -.9)
-            left_speed = self.speed * (1 - adjust)
-            right_speed = self.speed * (1 + adjust)
-            self.controller.driveForTime(left_speed, right_speed, 1)
+                adjust = max(min(adjust, .9), -.9)
+                left_speed = self.speed * (1 - adjust)
+                right_speed = self.speed * (1 + adjust)
+                self.controller.driveForTime(left_speed, right_speed, 1, STATE_DRIVING)
 
         if publish_flag:
             ARROW_LENGTH = 50
@@ -255,8 +271,7 @@ class LaneFollowingNode:
             midx, midy = xmin + .5 * width, ymin + .5 * height
 
             # detect which way we can turn to
-            lenq = len(self.controller.actions_queue)
-            if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
+            if self.controller.getCurrentState() == STATE_WAITING_FOR_TURN and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
                 if len(self.controller.actions_queue) == 2:  # forward-facing
                     self.turn_detection[0] += .5
                     if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
@@ -290,30 +305,46 @@ class LaneFollowingNode:
             contour_y = ymin + height * 0.5
 
         if self.turn_flag:
-            if self.controller.actionQueueIsEmpty():
-                # make a turn
-                min_idx = 0
-                for i in range(1, len(self.turn_detection)):
-                    if self.turn_detection[i] < self.turn_detection[0]:
-                        min_idx = i
-                turn_idx = (min_idx + 1) % 3
+            if not self.duckie_detected or self.duckie_distance > SAFE_TURN_DISTANCE:
+                if self.controller.actionQueueIsEmpty():
+                    # make a turn
+                    possible_turns = [0, 1, 2]
+                    min_idx = 0
+                    for i in range(1, len(self.turn_detection)):
+                        if self.turn_detection[i] < self.turn_detection[0]:
+                            min_idx = i
+                    possible_turns.remove(min_idx)
 
-                self.speed = self.max_speed
-                if turn_idx == 0:
-                    print('making a left turn')
-                    self.controller.driveForTime(.58 * self.speed, 1.42 * self.speed, PROCESSING_RATE * 2.)
-                elif turn_idx == 1:
-                    print('making a forward turn')
-                    self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5)
-                elif turn_idx == 2:
-                    print('making a right turn')
-                    self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75)
+                    TURN_CENTERS = ((240, 160), (320, 80), (400, 160))
+                    turn_idx = -1
+                    best_distance_square = math.inf
+                    for i in range(len(possible_turns)):
+                        cur_turn_idx = possible_turns[i]
+                        cur_turn_center_x, cur_turn_center_y = TURN_CENTERS[cur_turn_idx]
+                        last_observed_x, last_observed_y = self.duckie_center
+                        cur_distance_square = (cur_turn_center_x - last_observed_x) ** 2 + (cur_turn_center_y - last_observed_y) ** 2
+                        if cur_distance_square < best_distance_square:
+                            best_distance_square = cur_distance_square
+                            turn_idx = cur_turn_idx
 
-                # reset the detection list since we are out of the intersection after the turn
-                for i in range(len(self.turn_detection)):
-                    self.turn_detection[i] = 0
-                self.turn_flag = False
-                self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.5
+
+                    self.speed = self.max_speed
+                    self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25, STATE_TURNING)
+                    if turn_idx == 0:
+                        print('making a left turn')
+                        self.controller.driveForTime(.58 * self.speed, 1.42 * self.speed, PROCESSING_RATE * 2., STATE_TURNING)
+                    elif turn_idx == 1:
+                        print('making a forward turn')
+                        self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5, STATE_TURNING)
+                    elif turn_idx == 2:
+                        print('making a right turn')
+                        self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
+
+                    # reset the detection list since we are out of the intersection after the turn
+                    for i in range(len(self.turn_detection)):
+                        self.turn_detection[i] = 0
+                    self.turn_flag = False
+                    self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.5
 
         self.correct_x = (contour_y - 330) / (390 - 330)
         self.correct_x = 1 - min(1, max(0, self.correct_x))
@@ -322,11 +353,10 @@ class LaneFollowingNode:
             (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
             print('zeroing velocity')
             self.speed = 0
-            self.stop_timer = self.stop_timer_default + 9999
+            self.stop_timer = self.stop_timer_default + 99999
             self.turn_flag = True
 
-            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75)
-            self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25)
+            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75, STATE_WAITING_FOR_TURN)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
