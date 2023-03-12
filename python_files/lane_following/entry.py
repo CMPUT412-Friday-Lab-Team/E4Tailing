@@ -16,7 +16,7 @@ from duckietown_msgs.srv import SetCustomLEDPattern
 from duckietown_msgs.msg import LEDPattern
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
-PUBLISH_IMAGE = False
+PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
 
@@ -143,7 +143,7 @@ class LaneFollowingNode:
 
                 self.stopline_processing(im)
                 self.update_controller(im)
-                self.controller.update()
+                self.controller.update(self.detection_manager.isCarTooClose())
             rate.sleep()
 
     

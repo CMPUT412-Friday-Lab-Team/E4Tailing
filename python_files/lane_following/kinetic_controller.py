@@ -63,16 +63,19 @@ class KineticController:
             state = self.actions_queue[0][3]
             return state
 
-    def update(self):
+    def update(self, is_car_too_close):
         if len(self.actions_queue) == 0:
             self.drive(0., 0.)
         else:
             left_speed, right_speed, time, state = self.actions_queue[0]
-            self.drive(left_speed, right_speed)
-            if time <= 1:
-                self.actions_queue.pop(0)
+            if (left_speed == 0 and right_speed == 0) or not is_car_too_close:
+                self.drive(left_speed, right_speed)
+                if time <= 1:
+                    self.actions_queue.pop(0)
+                else:
+                    self.actions_queue[0] = (left_speed, right_speed, time - 1, state)
             else:
-                self.actions_queue[0] = (left_speed, right_speed, time - 1, state)
+                self.drive(0., 0.)
 
     def driveForTime(self, left_speed, right_speed, ntime_step, state):
         self.actions_queue.append((left_speed, right_speed, ntime_step, state))
