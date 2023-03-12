@@ -6,11 +6,11 @@ import cv2
 import rospy
 from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import String, Float32, ColorRGBA
+from std_msgs.msg import String, ColorRGBA
 import threading
-from duckietown_msgs.msg import BoolStamped, VehicleCorners
 
 import kinetic_controller
+import detection_info
 
 from duckietown_msgs.srv import SetCustomLEDPattern
 from duckietown_msgs.msg import LEDPattern
@@ -19,8 +19,6 @@ HOST_NAME = os.environ["VEHICLE_NAME"]
 PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
-SAFE_DRIVING_DISTANCE = 0.30
-SAFE_TURN_DISTANCE = SAFE_DRIVING_DISTANCE
 
 STATE_TOO_CLOSE = 0
 STATE_WAITING_FOR_TURN = 1
@@ -34,15 +32,11 @@ class LaneFollowingNode:
         self.count = 0
         self.image_lock = threading.Lock()
         self.sub = rospy.Subscriber(f'/{HOST_NAME}/camera_node/image/compressed', CompressedImage, self.callback, queue_size=1)
-        self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback, queue_size=1)
-        self.sub_duckie_detection = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_callback, queue_size=1)
         if PUBLISH_IMAGE:
             self.pub = rospy.Publisher(f'/{HOST_NAME}/lane_following/compressed', CompressedImage, queue_size=10)
+        self.detection_manager = detection_info.DetectionManager()
         self.image = None
         self.seq = 0
-        self.duckie_center = (0., 0.)
-        self.duckie_distance = 0.
-        self.duckie_detected = False
         
         ANGLE_MULT = 0.
         POSITION_MULT = 1.
@@ -54,7 +48,6 @@ class LaneFollowingNode:
         self.speed = self.max_speed  # current speed
         self.correct_x = 1
 
-        self.car_too_close = False
         self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
@@ -79,31 +72,6 @@ class LaneFollowingNode:
             self.image_lock.acquire()
             self.image = im
             self.image_lock.release()
-
-    def duckie_distance_callback(self, msg):
-        print('DISTANCE CALLBACK!')
-        self.duckie_distance = msg.data
-            
-    def duckie_callback(self, msg):
-        print('DETECTION CALLBACK!')
-        if not msg.detection: 
-            self.duckie_detected = False
-            self.car_too_close = False
-        else:
-            self.duckie_detected = True    
-
-            if self.duckie_distance < SAFE_DRIVING_DISTANCE:
-                self.car_too_close = True
-
-            corners_list = msg.corners
-            sumx, sumy = .0, .0
-            NUM_CORNERS = 21
-            if len(corners_list) > NUM_CORNERS * .5:  # half of the dots are visible
-                for i in range(len(corners_list)):
-                    corner = corners_list[i]
-                    sumx += corner.x
-                    sumy += corner.y
-                self.duckie_center = (sumx / NUM_CORNERS, sumy / NUM_CORNERS)
 
     def general_callback(self, msg):
         strs = msg.data.split()
@@ -169,8 +137,10 @@ class LaneFollowingNode:
             im = self.image
             self.image_lock.release()
             if im is not None:
-                x, y = self.duckie_center
-                print(f'observations: {self.duckie_detected} {self.duckie_distance} center: {x}, {y}')
+
+                x, y = self.detection_manager.getCenter()
+                print(f'observations: {self.detection_manager.isDetected()} {self.detection_manager.getDistance()} center: {x}, {y}')
+
                 self.update_controller(im)
                 self.stopline_processing(im)
                 self.controller.update()
@@ -247,7 +217,7 @@ class LaneFollowingNode:
         position_error = max(position_error, -280.)
         
         if self.controller.actionQueueIsEmpty():
-            if self.car_too_close:
+            if self.detection_manager.isCarTooClose():
                 self.change_pattern('STOP')
                 # print(f'stopping turn_flag:{self.turn_flag}')
                 if self.turn_flag:
@@ -352,7 +322,7 @@ class LaneFollowingNode:
             contour_y = ymin + height * 0.5
 
         if self.turn_flag:
-            if (not self.duckie_detected) or self.duckie_distance > SAFE_TURN_DISTANCE:
+            if self.detection_manager.isSafeToTurn():
                 if self.controller.actionQueueIsEmpty():
                     # make a turn
                     possible_turns = [0, 1, 2]
@@ -365,10 +335,11 @@ class LaneFollowingNode:
                     TURN_CENTERS = ((240, 160), (320, 80), (400, 160))
                     turn_idx = -1
                     best_distance_square = math.inf
+                    last_observed_x, last_observed_y = self.detection_manager.getCenter()
+                    print(f'last observed center xy: {last_observed_x}, {last_observed_y}')
                     for i in range(len(possible_turns)):
                         cur_turn_idx = possible_turns[i]
                         cur_turn_center_x, cur_turn_center_y = TURN_CENTERS[cur_turn_idx]
-                        last_observed_x, last_observed_y = self.duckie_center
                         cur_distance_square = (cur_turn_center_x - last_observed_x) ** 2 + (cur_turn_center_y - last_observed_y) ** 2
                         if cur_distance_square < best_distance_square:
                             best_distance_square = cur_distance_square
