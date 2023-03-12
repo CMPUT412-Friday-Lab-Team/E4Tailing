@@ -32,7 +32,7 @@ class ReloaderNode(DTROS):
                 print(f'current working folder:{os.getcwd()}')
                 for package_name in ('lane_following', 'duckiebot_detection'):
                     target_folder = rospack.get_path(package_name) + f'/src'
-                    download_from_github(owner, f'E4Tailing', 'main', target_folder, f'python_files/{package_name}')
+                    download_from_github(owner, f'E4Tailing', 'duckie_follow', target_folder, f'python_files/{package_name}')
                     print(f'resulting files:')
                     for file in os.listdir(target_folder):
                         print('    ', file)
