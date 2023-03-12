@@ -258,6 +258,7 @@ class LaneFollowingNode:
             lenq = len(self.controller.actions_queue)
             if (lenq == 2 or lenq == 4) and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
                 if len(self.controller.actions_queue) == 2:  # forward-facing
+                    self.turn_detection[0] += .5
                     if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
                         print(f'case1 {midx}, {midy}')
                         cv2.arrowedLine(im,
@@ -292,7 +293,6 @@ class LaneFollowingNode:
             if self.controller.actionQueueIsEmpty():
                 # make a turn
                 min_idx = 0
-                self.turn_detection[0] += 5
                 for i in range(1, len(self.turn_detection)):
                     if self.turn_detection[i] < self.turn_detection[0]:
                         min_idx = i
