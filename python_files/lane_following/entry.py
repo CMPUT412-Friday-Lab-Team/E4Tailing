@@ -13,7 +13,9 @@ import rospkg
 import threading
 from duckietown_msgs.msg import BoolStamped, VehicleCorners
 
+from duckietown_msgs.srv import ChangePattern
 import kinetic_controller
+
 
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
@@ -61,6 +63,16 @@ class LaneFollowingNode:
                 self.continue_run = False
         rospy.Subscriber('/general', String, general_callback)
 
+    def change_pattern(self, patternStr):
+        rospy.wait_for_service(f'/{HOST_NAME}/led_emitter_node/set_pattern')
+        try:
+            changePatternSrv = rospy.ServiceProxy(f'/{HOST_NAME}/led_emitter_node/set_pattern', ChangePattern)
+            msg = String()
+            msg.data = patternStr
+            changePatternSrv(msg)
+        except rospy.ServiceException as e:
+            print('Service request failed')
+            print(e)
     def callback(self, msg):
         # how to decode compressed image
         # reference: http://wiki.ros.org/rospy_tutorials/Tutorials/WritingImagePublisherSubscriber
@@ -108,6 +120,7 @@ class LaneFollowingNode:
             rate.sleep()
 
         while not rospy.is_shutdown():
+            self.change_pattern('switchedoff')
             if not self.continue_run:
                 self.controller.drive(0, 0)
                 break
