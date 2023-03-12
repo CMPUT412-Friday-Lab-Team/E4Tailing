@@ -8,7 +8,7 @@ import yaml
 import sys
 from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import String, Float32
+from std_msgs.msg import String, Float32, ColorRGBA
 import rospkg
 import threading
 from duckietown_msgs.msg import BoolStamped, VehicleCorners
