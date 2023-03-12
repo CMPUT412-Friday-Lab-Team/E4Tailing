@@ -19,6 +19,7 @@ HOST_NAME = os.environ["VEHICLE_NAME"]
 PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
+TURN_CENTERS = ((260, 120), (320, 100), (380, 120))
 
 STATE_TOO_CLOSE = 0
 STATE_WAITING_FOR_TURN = 1
@@ -326,6 +327,12 @@ class LaneFollowingNode:
                 (int(last_observed_x), int(last_observed_y)), 
                 (int(last_observed_x), int(last_observed_y + 10)), 
                 (255, 255, 0), 3)
+            for i in range(len(TURN_CENTERS)):
+                last_observed_x, last_observed_y = TURN_CENTERS[i]
+                cv2.arrowedLine(im,
+                    (int(last_observed_x), int(last_observed_y)), 
+                    (int(last_observed_x), int(last_observed_y + 10)), 
+                    (255, 255, 0), 3)
         if self.turn_flag:
             if self.detection_manager.isSafeToTurn():
                 if self.controller.actionQueueIsEmpty():
@@ -337,7 +344,6 @@ class LaneFollowingNode:
                             min_idx = i
                     possible_turns.remove(min_idx)
 
-                    TURN_CENTERS = ((260, 120), (320, 100), (380, 120))
                     turn_idx = -1
                     best_distance_square = math.inf
                     last_observed_x, last_observed_y = self.detection_manager.getCenter()
