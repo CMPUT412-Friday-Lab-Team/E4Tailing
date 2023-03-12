@@ -120,24 +120,24 @@ class LaneFollowingNode:
         try:
             changePatternSrv = rospy.ServiceProxy(f'/{HOST_NAME}/led_emitter_node/set_custom_pattern', SetCustomLEDPattern)
             msg = LEDPattern()
-            # BLACK = ColorRGBA(0, 0, 0, 0)
+            RED = ColorRGBA(255, 0, 0, 255)
             if patternStr == 'DRIVING':
-                msg.color_list = ['RED'] * 5
+                msg.color_list = [RED] * 5
                 msg.color_mask = [0] * 5
                 msg.frequency = 0.
                 msg.frequency_mask = [0] * 5
             elif patternStr == 'STOP':
-                msg.color_list = ['RED'] * 5
+                msg.color_list = [RED] * 5
                 msg.color_mask = [1] * 5
                 msg.frequency = 0.
                 msg.frequency_mask = [0] * 5
             elif patternStr == 'TURN_LEFT':
-                msg.color_list = ['RED'] * 5
+                msg.color_list = [RED] * 5
                 msg.color_mask = [1, 1, 0, 0, 0]
                 msg.frequency = 1.
                 msg.frequency_mask = [1, 1, 0, 0, 0]
             elif patternStr == 'TURN_RIGHT':
-                msg.color_list = ['RED'] * 5
+                msg.color_list = [RED] * 5
                 msg.color_mask = [0, 0, 0, 1, 1]
                 msg.frequency = 1.
                 msg.frequency_mask = [0, 0, 0, 1, 1]
