@@ -33,9 +33,9 @@ class LaneFollowingNode:
         # Initialize an instance of Renderer giving the model in input.
         self.count = 0
         self.image_lock = threading.Lock()
-        self.sub = rospy.Subscriber(f'/{HOST_NAME}/camera_node/image/compressed', CompressedImage, self.callback)
-        self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback)
-        self.sub_duckie_detection = rospy.Publisher(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_callback)
+        self.sub = rospy.Subscriber(f'/{HOST_NAME}/camera_node/image/compressed', CompressedImage, self.callback, queue_size=1)
+        self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback, queue_size=1)
+        self.sub_duckie_detection = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_callback, queue_size=1)
         if PUBLISH_IMAGE:
             self.pub = rospy.Publisher(f'/{HOST_NAME}/lane_following/compressed', CompressedImage, queue_size=10)
         self.image = None
