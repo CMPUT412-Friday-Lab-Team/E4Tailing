@@ -16,7 +16,7 @@ from duckietown_msgs.srv import SetCustomLEDPattern
 from duckietown_msgs.msg import LEDPattern
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
-PUBLISH_IMAGE = True
+PUBLISH_IMAGE = False
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
 
