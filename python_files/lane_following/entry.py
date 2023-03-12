@@ -4,12 +4,9 @@ import math
 import cv2
 
 import rospy
-import yaml
-import sys
 from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, Float32, ColorRGBA
-import rospkg
 import threading
 from duckietown_msgs.msg import BoolStamped, VehicleCorners
 
@@ -339,7 +336,7 @@ class LaneFollowingNode:
                         self.turn_detection[2] += 1
                 print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
 
-            if area > largest_area and area > 2000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
+            if area > largest_area and area > 4000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
                 largest_idx = i
 
