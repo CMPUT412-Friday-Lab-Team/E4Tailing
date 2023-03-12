@@ -84,9 +84,11 @@ class LaneFollowingNode:
             self.image_lock.release()
 
     def duckie_distance_callback(self, msg):
+        print('DISTANCE CALLBACK!')
         self.duckie_distance = msg.data
             
     def duckie_callback(self, msg):
+        print('DETECTION CALLBACK!')
         if not msg.detection: 
             self.duckie_detected = False
             self.car_too_close = False
@@ -170,7 +172,7 @@ class LaneFollowingNode:
             self.image_lock.release()
             if im is not None:
                 x, y = self.duckie_center
-                print(f'observations: {self.duckie_detected} {self.duckie_distance} center: {x}, {y}')
+                # print(f'observations: {self.duckie_detected} {self.duckie_distance} center: {x}, {y}')
                 self.update_controller(im)
                 self.stopline_processing(im)
                 self.controller.update()
@@ -262,7 +264,7 @@ class LaneFollowingNode:
                 adjust = max(min(adjust, .9), -.9)
                 left_speed = self.speed * (1 - adjust)
                 right_speed = self.speed * (1 + adjust)
-                print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
+                # print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
                 self.controller.driveForTime(left_speed, right_speed, 1, STATE_DRIVING)
 
         if publish_flag:
@@ -337,7 +339,7 @@ class LaneFollowingNode:
                         self.turn_detection[2] += 1
                 print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
 
-            if area > largest_area and area > 1000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
+            if area > largest_area and area > 2000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
                 largest_idx = i
 
@@ -352,7 +354,7 @@ class LaneFollowingNode:
             contour_y = ymin + height * 0.5
 
         if self.turn_flag:
-            if not self.duckie_detected or self.duckie_distance > SAFE_TURN_DISTANCE:
+            if (not self.duckie_detected) or self.duckie_distance > SAFE_TURN_DISTANCE:
                 if self.controller.actionQueueIsEmpty():
                     # make a turn
                     possible_turns = [0, 1, 2]
