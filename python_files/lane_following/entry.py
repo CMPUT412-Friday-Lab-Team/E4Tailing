@@ -84,15 +84,17 @@ class LaneFollowingNode:
 
     def duckie_distance_callback(self, msg):
         self.duckie_distance = msg.data
-        if self.duckie_distance < SAFE_DRIVING_DISTANCE:
-            self.car_too_close = True
             
     def duckie_callback(self, msg):
         if not msg.detection: 
             self.duckie_detected = False
+            self.car_too_close = False
         else:
-            self.duckie_detected = True                
-            # 3. Wait longer at intersections
+            self.duckie_detected = True    
+
+            if self.duckie_distance < SAFE_DRIVING_DISTANCE:
+                self.car_too_close = True
+
             corners_list = msg.corners
             sumx, sumy = .0, .0
             NUM_CORNERS = 21
