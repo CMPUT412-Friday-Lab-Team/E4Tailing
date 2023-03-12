@@ -69,9 +69,11 @@ class DetectionManager:
     def duckie_detection_callback(self, msg):
         self.lock.acquire()
         if msg.data:
+            print('detected ', self.duckie_distance)
             self.duckie_detected = True
             self.duckie_detected_counter = COUNTER_MAX
         else:
+            print('not detected')
             self.duckie_detected = False
             self.duckie_detected_counter -= 1
         self.duckie_detected_counter = max(0, min(COUNTER_MAX, self.duckie_detected_counter))
