@@ -139,7 +139,7 @@ class LaneFollowingNode:
             if im is not None:
 
                 x, y = self.detection_manager.getCenter()
-                print(f'observations: {self.detection_manager.isDetected()} {self.detection_manager.getDistance()} center: {x}, {y}')
+                # print(f'observations: {self.detection_manager.isDetected()} {self.detection_manager.getDistance()} center: {x}, {y}')
 
                 self.stopline_processing(im)
                 self.update_controller(im)
@@ -217,7 +217,7 @@ class LaneFollowingNode:
         position_error = max(position_error, -280.)
         
         if self.controller.actionQueueIsEmpty():
-            print(f'is car to close: {self.detection_manager.isCarTooClose()}')
+            # print(f'is car too close: {self.detection_manager.isCarTooClose()}')
             if self.detection_manager.isCarTooClose():
                 self.change_pattern('STOP')
                 # print(f'stopping turn_flag:{self.turn_flag}')
@@ -320,13 +320,9 @@ class LaneFollowingNode:
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
 
-        print('turn a')
         if self.turn_flag:
-            print('turn b')
             if self.detection_manager.isSafeToTurn():
-                print('turn c')
                 if self.controller.actionQueueIsEmpty():
-                    print('turn d')
                     # make a turn
                     possible_turns = [0, 1, 2]
                     min_idx = 0
