@@ -11,30 +11,32 @@ import threading
 
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
-SAFE_DRIVING_DISTANCE = 0.30
+SAFE_DRIVING_DISTANCE = 0.50
 SAFE_TURN_DISTANCE = SAFE_DRIVING_DISTANCE
+COUNTER_MAX = 5
 
 
 class DetectionManager:
     def __init__(self):
-        self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback, queue_size=1)
-        self.sub_duckie_center = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_center_callback, queue_size=1)
-        self.sub_duckie_detection = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/detection', BoolStamped, self.duckie_detection_callback, queue_size=1)
+        self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback, queue_size=2)
+        self.sub_duckie_center = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_center_callback, queue_size=2)
+        self.sub_duckie_detection = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/detection', BoolStamped, self.duckie_detection_callback, queue_size=2)
 
         self.duckie_center = (0., 0.)
         self.duckie_distance = 0.
         self.duckie_detected = False
+        self.duckie_detected_counter = 0
 
         self.lock = threading.Lock()
     
     def isCarTooClose(self):
-        return self.duckie_distance < SAFE_DRIVING_DISTANCE and self.duckie_detected
+        return self.duckie_distance < SAFE_DRIVING_DISTANCE and self.duckie_detected_counter > 0
 
     def isDetected(self):
         return self.duckie_detected
 
     def isSafeToTurn(self):
-        return (not self.duckie_detected) or self.getDistance() > SAFE_TURN_DISTANCE
+        return self.duckie_detected_counter <= 1 or self.getDistance() > SAFE_TURN_DISTANCE
 
     def getCenter(self):
         return self.duckie_center
@@ -43,19 +45,12 @@ class DetectionManager:
         return self.duckie_distance
     
     def duckie_distance_callback(self, msg):
-        print('DISTANCE CALLBACK!')
         self.lock.acquire()
         self.duckie_distance = msg.data
         self.lock.release()
             
     def duckie_center_callback(self, msg):
-        print('CENTER CALLBACK!')
-        if not msg.detection.data: 
-            self.lock.acquire()
-            print('center:updating detected to ', False)
-            self.duckie_detected = False
-            self.lock.release()
-        else:
+        if msg.detection.data: 
             corners_list = msg.corners
             sumx, sumy = .0, .0
             NUM_CORNERS = 21
@@ -66,16 +61,18 @@ class DetectionManager:
                     sumx += corner.x
                     sumy += corner.y
                 center = (sumx / NUM_CORNERS, sumy / NUM_CORNERS)
-            
-            self.lock.acquire()
             if center is not None:
+                self.lock.acquire()
                 self.duckie_center = center
-            print('center:updating detected to ', True)
-            self.duckie_detected = True
-            self.lock.release()
+                self.lock.release()
     
     def duckie_detection_callback(self, msg):
         self.lock.acquire()
-        print('detection:updating detected to ', msg.data)
-        self.duckie_detected = msg.data
+        if msg.data:
+            self.duckie_detected = True
+            self.duckie_detected_counter += 1
+        else:
+            self.duckie_detected = False
+            self.duckie_detected_counter -= 1
+        self.duckie_detected_counter = max(0, min(COUNTER_MAX, self.duckie_detected_counter))
         self.lock.release()
