@@ -3,6 +3,7 @@ This file defines a class that manages the detection information for the duckieb
 """
 
 
+import os
 import rospy
 from std_msgs.msg import Float32
 from duckietown_msgs.msg import BoolStamped, VehicleCorners
