@@ -62,6 +62,7 @@ class LaneFollowingNode:
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
         self.turn_detection = [0., 0., 0.]  # detecting if the left, forward and right direction of an intersection has a road to turn to
+        self.cur_pattern = None
 
         self.continue_run = True
         self.last_angle_error = 0.
@@ -118,6 +119,10 @@ class LaneFollowingNode:
                 print(f'coefficient type {strs[0]} not recognized!')
 
     def change_pattern(self, patternStr):
+        if patternStr == self.cur_pattern:
+            return
+        else:
+            self.cur_pattern = patternStr
         rospy.wait_for_service(f'/{HOST_NAME}/led_emitter_node/set_custom_pattern')
         try:
             changePatternSrv = rospy.ServiceProxy(f'/{HOST_NAME}/led_emitter_node/set_custom_pattern', SetCustomLEDPattern)
