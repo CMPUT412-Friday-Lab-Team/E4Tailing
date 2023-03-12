@@ -15,6 +15,8 @@ from duckietown_msgs.msg import BoolStamped, VehicleCorners
 
 import kinetic_controller
 
+from duckietown_msgs.srv import SetCustomLEDPattern
+from duckietown_msgs.msg import LEDPattern
 
 HOST_NAME = os.environ["VEHICLE_NAME"]
 PUBLISH_IMAGE = True
@@ -113,6 +115,38 @@ class LaneFollowingNode:
             else:
                 print(f'coefficient type {strs[0]} not recognized!')
 
+    def change_pattern(self, patternStr):
+        rospy.wait_for_service(f'/{HOST_NAME}/led_emitter_node/set_custom_pattern')
+        try:
+            changePatternSrv = rospy.ServiceProxy(f'/{HOST_NAME}/led_emitter_node/set_custom_pattern', SetCustomLEDPattern)
+            msg = LEDPattern()
+            # BLACK = ColorRGBA(0, 0, 0, 0)
+            if patternStr == 'DRIVING':
+                msg.color_list = ['RED'] * 5
+                msg.color_mask = [0] * 5
+                msg.frequency = 0.
+                msg.frequency_mask = [0] * 5
+            elif patternStr == 'STOP':
+                msg.color_list = ['RED'] * 5
+                msg.color_mask = [1] * 5
+                msg.frequency = 0.
+                msg.frequency_mask = [0] * 5
+            elif patternStr == 'TURN_LEFT':
+                msg.color_list = ['RED'] * 5
+                msg.color_mask = [1, 1, 0, 0, 0]
+                msg.frequency = 1.
+                msg.frequency_mask = [1, 1, 0, 0, 0]
+            elif patternStr == 'TURN_RIGHT':
+                msg.color_list = ['RED'] * 5
+                msg.color_mask = [0, 0, 0, 1, 1]
+                msg.frequency = 1.
+                msg.frequency_mask = [0, 0, 0, 1, 1]
+            msg.data = patternStr
+            changePatternSrv(msg)
+        except rospy.ServiceException as e:
+            print('Service request failed')
+            print(e)
+
     def run(self):
         rate = rospy.Rate(PROCESSING_RATE)  # in Hz
         for i in range(10):
@@ -207,12 +241,14 @@ class LaneFollowingNode:
         
         if self.controller.actionQueueIsEmpty():
             if self.car_too_close:
+                self.change_pattern('STOP')
                 print(f'stopping turn_flag:{self.turn_flag}')
                 if self.turn_flag:
                     self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
                 else:
                     self.controller.driveForTime(0., 0., 1, STATE_TOO_CLOSE)
             else:
+                self.change_pattern('DRIVING')
                 self.controller.update_error(angle_error, position_error)
                 adjust = self.controller.get_adjustment()
 
@@ -334,12 +370,15 @@ class LaneFollowingNode:
                     self.speed = self.max_speed
                     self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25, STATE_TURNING)
                     if turn_idx == 0:
+                        self.change_pattern('TURN_LEFT')
                         print('making a left turn')
                         self.controller.driveForTime(.58 * self.speed, 1.42 * self.speed, PROCESSING_RATE * 2., STATE_TURNING)
                     elif turn_idx == 1:
+                        self.change_pattern('DRIVING')
                         print('making a forward turn')
                         self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5, STATE_TURNING)
                     elif turn_idx == 2:
+                        self.change_pattern('TURN_RIGHT')
                         print('making a right turn')
                         self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
 
