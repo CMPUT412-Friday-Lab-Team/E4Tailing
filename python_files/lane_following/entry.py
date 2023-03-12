@@ -141,7 +141,6 @@ class LaneFollowingNode:
                 msg.color_mask = [0, 0, 0, 1, 1]
                 msg.frequency = 1.
                 msg.frequency_mask = [0, 0, 0, 1, 1]
-            msg.data = patternStr
             changePatternSrv(msg)
         except rospy.ServiceException as e:
             print('Service request failed')
