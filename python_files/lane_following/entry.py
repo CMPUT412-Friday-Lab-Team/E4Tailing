@@ -141,8 +141,8 @@ class LaneFollowingNode:
                 x, y = self.detection_manager.getCenter()
                 print(f'observations: {self.detection_manager.isDetected()} {self.detection_manager.getDistance()} center: {x}, {y}')
 
-                self.update_controller(im)
                 self.stopline_processing(im)
+                self.update_controller(im)
                 self.controller.update()
             rate.sleep()
 

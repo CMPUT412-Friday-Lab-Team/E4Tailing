@@ -52,6 +52,7 @@ class DetectionManager:
         print('CENTER CALLBACK!')
         if not msg.detection: 
             self.lock.acquire()
+            print('center:updating detected to ', False)
             self.duckie_detected = False
             self.lock.release()
         else:
@@ -69,10 +70,12 @@ class DetectionManager:
             self.lock.acquire()
             if center is not None:
                 self.duckie_center = center
+            print('center:updating detected to ', True)
             self.duckie_detected = True
             self.lock.release()
     
     def duckie_detection_callback(self, msg):
         self.lock.acquire()
+        print('detection:updating detected to ', msg.data)
         self.duckie_detected = msg.data
         self.lock.release()
