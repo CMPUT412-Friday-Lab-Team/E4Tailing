@@ -41,8 +41,8 @@ class LaneFollowingNode:
             self.pub = rospy.Publisher(f'/{HOST_NAME}/lane_following/compressed', CompressedImage, queue_size=10)
         self.image = None
         self.seq = 0
-        self.duckie_center = None
-        self.duckie_distance = None
+        self.duckie_center = (0., 0.)
+        self.duckie_distance = 0.
         self.duckie_detected = False
         
         ANGLE_MULT = 0.
@@ -82,6 +82,8 @@ class LaneFollowingNode:
 
     def duckie_distance_callback(self, msg):
         self.duckie_distance = msg.distance
+        if self.duckie_distance < SAFE_DRIVING_DISTANCE:
+            self.car_too_close = True
             
     def duckie_callback(self, msg):
         if not msg.detection: 
@@ -125,8 +127,6 @@ class LaneFollowingNode:
             self.image_lock.acquire()
             im = self.image
             self.image_lock.release()
-            if self.duckie_distance < SAFE_DRIVING_DISTANCE:
-                self.car_too_close = True
             if im is not None:
                 self.update_controller(im)
                 self.stopline_processing(im)
