@@ -19,9 +19,8 @@ class DetectionManager:
     def __init__(self):
         self.sub_duckie_distance = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_distance_node/distance', Float32, self.duckie_distance_callback, queue_size=1)
         self.sub_duckie_center = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/centers', VehicleCorners, self.duckie_center_callback, queue_size=1)
-        self.pub_duckie_detection = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/detection', BoolStamped, self.duckie_detection_callback, queue_size=1)
+        self.sub_duckie_detection = rospy.Subscriber(f'/{HOST_NAME}/duckiebot_detection_node/detection', BoolStamped, self.duckie_detection_callback, queue_size=1)
 
-        self.car_too_close = False
         self.duckie_center = (0., 0.)
         self.duckie_distance = 0.
         self.duckie_detected = False

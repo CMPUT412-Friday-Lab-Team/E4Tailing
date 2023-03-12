@@ -217,6 +217,7 @@ class LaneFollowingNode:
         position_error = max(position_error, -280.)
         
         if self.controller.actionQueueIsEmpty():
+            print(f'is car to close: {self.detection_manager.isCarTooClose()}')
             if self.detection_manager.isCarTooClose():
                 self.change_pattern('STOP')
                 # print(f'stopping turn_flag:{self.turn_flag}')
@@ -289,23 +290,21 @@ class LaneFollowingNode:
 
             # detect which way we can turn to
             if self.controller.getCurrentState() == STATE_WAITING_FOR_TURN and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
-                if len(self.controller.actions_queue) == 2:  # forward-facing
-                    self.turn_detection[0] += .5
-                    if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
-                        print(f'case1 {midx}, {midy}')
-                        cv2.arrowedLine(im,
-                            (int(midx), int(midy)), 
-                            (int(midx), int(midy + 10)), 
-                            (0, 255, 0), 3)
-                        self.turn_detection[1] += 1
-                    elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
-                        cv2.arrowedLine(im,
-                            (int(midx), int(midy)), 
-                            (int(midx), int(midy + 10)), 
-                            (0, 0, 255), 3)
-                        print(f'case2 {midx}, {midy}')
-                        self.turn_detection[2] += 1
-                print(f'turn detection after update: {self.turn_detection[0]}, {self.turn_detection[1]}, {self.turn_detection[2]}')
+                self.turn_detection[0] += .5
+                if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
+                    print(f'case1 {midx}, {midy}')
+                    cv2.arrowedLine(im,
+                        (int(midx), int(midy)), 
+                        (int(midx), int(midy + 10)), 
+                        (0, 255, 0), 3)
+                    self.turn_detection[1] += 1
+                elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
+                    cv2.arrowedLine(im,
+                        (int(midx), int(midy)), 
+                        (int(midx), int(midy + 10)), 
+                        (0, 0, 255), 3)
+                    print(f'case2 {midx}, {midy}')
+                    self.turn_detection[2] += 1
 
             if area > largest_area and area > 4000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
@@ -321,9 +320,13 @@ class LaneFollowingNode:
             xmin, ymin, width, height = cv2.boundingRect(largest_ctn)
             contour_y = ymin + height * 0.5
 
+        print('turn a')
         if self.turn_flag:
+            print('turn b')
             if self.detection_manager.isSafeToTurn():
+                print('turn c')
                 if self.controller.actionQueueIsEmpty():
+                    print('turn d')
                     # make a turn
                     possible_turns = [0, 1, 2]
                     min_idx = 0
@@ -372,7 +375,7 @@ class LaneFollowingNode:
 
         if self.stop_timer <= self.stop_timer_default and \
             (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
-            print('zeroing velocity')
+            print('stopline detected, zeroing velocity')
             self.speed = 0
             self.stop_timer = self.stop_timer_default + 99999
             self.turn_flag = True
