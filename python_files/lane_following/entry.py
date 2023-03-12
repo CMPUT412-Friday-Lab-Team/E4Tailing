@@ -331,7 +331,7 @@ class LaneFollowingNode:
                             min_idx = i
                     possible_turns.remove(min_idx)
 
-                    TURN_CENTERS = ((240, 160), (320, 80), (400, 160))
+                    TURN_CENTERS = ((260, 120), (320, 100), (380, 120))
                     turn_idx = -1
                     best_distance_square = math.inf
                     last_observed_x, last_observed_y = self.detection_manager.getCenter()
