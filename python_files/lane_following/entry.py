@@ -81,7 +81,7 @@ class LaneFollowingNode:
             self.image_lock.release()
 
     def duckie_distance_callback(self, msg):
-        self.duckie_distance = msg.distance
+        self.duckie_distance = msg.data
         if self.duckie_distance < SAFE_DRIVING_DISTANCE:
             self.car_too_close = True
             
