@@ -321,6 +321,12 @@ class LaneFollowingNode:
             contour_y = ymin + height * 0.5
 
         if self.turn_flag:
+            if publish_flag:
+                last_observed_x, last_observed_y = self.detection_manager.getCenter()
+                cv2.arrowedLine(im,
+                    (int(last_observed_x), int(last_observed_y)), 
+                    (int(last_observed_x), int(last_observed_y + 10)), 
+                    (255, 255, 0), 3)
             if self.detection_manager.isSafeToTurn():
                 if self.controller.actionQueueIsEmpty():
                     # make a turn
