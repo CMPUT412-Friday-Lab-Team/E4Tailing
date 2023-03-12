@@ -128,6 +128,8 @@ class LaneFollowingNode:
             im = self.image
             self.image_lock.release()
             if im is not None:
+                x, y = self.duckie_center
+                print(f'observations: {self.duckie_detected} {self.duckie_distance} center: {x}, {y}')
                 self.update_controller(im)
                 self.stopline_processing(im)
                 self.controller.update()
@@ -205,6 +207,7 @@ class LaneFollowingNode:
         
         if self.controller.actionQueueIsEmpty():
             if self.car_too_close:
+                print(f'stopping turn_flag:{self.turn_flag}')
                 if self.turn_flag:
                     self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
                 else:
