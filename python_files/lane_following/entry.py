@@ -233,7 +233,7 @@ class LaneFollowingNode:
                 adjust = max(min(adjust, .9), -.9)
                 left_speed = self.speed * (1 - adjust)
                 right_speed = self.speed * (1 + adjust)
-                print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
+                # print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
                 self.controller.driveForTime(left_speed, right_speed, 1, STATE_DRIVING)
 
         if publish_flag:

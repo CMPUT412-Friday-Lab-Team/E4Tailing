@@ -70,7 +70,7 @@ class DetectionManager:
         self.lock.acquire()
         if msg.data:
             self.duckie_detected = True
-            self.duckie_detected_counter += 1
+            self.duckie_detected_counter = COUNTER_MAX
         else:
             self.duckie_detected = False
             self.duckie_detected_counter -= 1
