@@ -98,11 +98,12 @@ class LaneFollowingNode:
             corners_list = msg.corners
             sumx, sumy = .0, .0
             NUM_CORNERS = 21
-            for i in range(NUM_CORNERS):
-                corner = corners_list[i]
-                sumx += corner.x
-                sumy += corner.y
-            self.duckie_center = (sumx / NUM_CORNERS, sumy / NUM_CORNERS)
+            if len(corners_list) > NUM_CORNERS * .5:  # half of the dots are visible
+                for i in range(len(corners_list)):
+                    corner = corners_list[i]
+                    sumx += corner.x
+                    sumy += corner.y
+                self.duckie_center = (sumx / NUM_CORNERS, sumy / NUM_CORNERS)
 
     def general_callback(self, msg):
         strs = msg.data.split()
@@ -169,7 +170,7 @@ class LaneFollowingNode:
             self.image_lock.release()
             if im is not None:
                 x, y = self.duckie_center
-                # print(f'observations: {self.duckie_detected} {self.duckie_distance} center: {x}, {y}')
+                print(f'observations: {self.duckie_detected} {self.duckie_distance} center: {x}, {y}')
                 self.update_controller(im)
                 self.stopline_processing(im)
                 self.controller.update()
@@ -248,7 +249,7 @@ class LaneFollowingNode:
         if self.controller.actionQueueIsEmpty():
             if self.car_too_close:
                 self.change_pattern('STOP')
-                print(f'stopping turn_flag:{self.turn_flag}')
+                # print(f'stopping turn_flag:{self.turn_flag}')
                 if self.turn_flag:
                     self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
                 else:
@@ -261,7 +262,7 @@ class LaneFollowingNode:
                 adjust = max(min(adjust, .9), -.9)
                 left_speed = self.speed * (1 - adjust)
                 right_speed = self.speed * (1 + adjust)
-                # print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
+                print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
                 self.controller.driveForTime(left_speed, right_speed, 1, STATE_DRIVING)
 
         if publish_flag:
