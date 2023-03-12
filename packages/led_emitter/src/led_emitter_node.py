@@ -177,13 +177,13 @@ class LEDEmitterNode(DTROS):
         self._LED_protocol = protocol
         rospy.set_param("~LED_protocol", protocol)
 
-        self.log(
-            "Custom pattern updated: "
-            "color_mask: %s, " % str(self._LED_protocol["signals"]["custom"]["color_mask"])
-            + "color_list: %s, " % str(self._LED_protocol["signals"]["custom"]["color_list"])
-            + "frequency_mask: %s, " % str(self._LED_protocol["signals"]["custom"]["frequency_mask"])
-            + "frequency: %s" % str(self._LED_protocol["signals"]["custom"]["frequency"])
-        )
+        # self.log(
+        #     "Custom pattern updated: "
+        #     "color_mask: %s, " % str(self._LED_protocol["signals"]["custom"]["color_mask"])
+        #     + "color_list: %s, " % str(self._LED_protocol["signals"]["custom"]["color_list"])
+        #     + "frequency_mask: %s, " % str(self._LED_protocol["signals"]["custom"]["frequency_mask"])
+        #     + "frequency: %s" % str(self._LED_protocol["signals"]["custom"]["frequency"])
+        # )
 
         # Perform the actual change
         self.changePattern("custom")
@@ -321,7 +321,7 @@ class LEDEmitterNode(DTROS):
             self.changeFrequency()
 
             # Loginfo
-            self.log("Pattern changed to (%r), cycle: %s " % (pattern_name, self.frequency))
+            # self.log("Pattern changed to (%r), cycle: %s " % (pattern_name, self.frequency))
 
     def changeFrequency(self):
         """Changes current frequency of LEDs
