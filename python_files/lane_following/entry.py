@@ -383,6 +383,7 @@ class LaneFollowingNode:
 
         if self.stop_timer <= self.stop_timer_default and \
             (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
+            self.change_pattern("STOP")
             print('stopline detected, zeroing velocity')
             self.speed = 0
             self.stop_timer = self.stop_timer_default + 99999
