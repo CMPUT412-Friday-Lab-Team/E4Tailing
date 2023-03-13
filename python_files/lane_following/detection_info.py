@@ -13,7 +13,7 @@ import threading
 HOST_NAME = os.environ["VEHICLE_NAME"]
 SAFE_DRIVING_DISTANCE = .30
 SAFE_TURN_DISTANCE = .80
-COUNTER_MAX = 30
+COUNTER_MAX = 10
 
 
 class DetectionManager:
