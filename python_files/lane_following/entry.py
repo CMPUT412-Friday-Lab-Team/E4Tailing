@@ -49,7 +49,7 @@ class LaneFollowingNode:
             (ANGLE_MULT * .3, ANGLE_MULT * .002, ANGLE_MULT * -3), 
             (POSITION_MULT * .005, POSITION_MULT * .00005, POSITION_MULT * -.0))
         
-        self.max_speed = 0.48  # top speed when driving in a single lane
+        self.max_speed = 0.56  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
         self.correct_x = 1
         self.timer = 0
