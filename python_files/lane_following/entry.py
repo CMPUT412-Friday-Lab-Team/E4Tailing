@@ -76,6 +76,24 @@ class LaneFollowingNode:
                 self.continue_run = False
         rospy.Subscriber('/general', String, general_callback)
 
+    def readYamlFile(self,fname):
+        """
+            Reads the 'fname' yaml file and returns a dictionary with its input.
+
+            You will find the calibration files you need in:
+            `/data/config/calibrations/`
+        """
+        with open(fname, 'r') as in_file:
+            try:
+                yaml_dict = yaml.load(in_file)
+                return yaml_dict
+            except yaml.YAMLError as exc:
+                self.log("YAML syntax error. File: %s fname. Exc: %s"
+                         %(fname, exc), type='fatal')
+                rospy.signal_shutdown()
+                return
+
+
     def callback(self, msg):
         # how to decode compressed image
         # reference: http://wiki.ros.org/rospy_tutorials/Tutorials/WritingImagePublisherSubscriber
