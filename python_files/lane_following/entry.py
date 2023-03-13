@@ -8,6 +8,7 @@ from duckietown.dtros import DTROS, NodeType
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, ColorRGBA
 import threading
+from dt_apriltags import Detector
 
 import kinetic_controller
 import detection_info
@@ -20,6 +21,7 @@ PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
 PROCESSING_RATE = 20
 TURN_CENTERS = ((260, 120), (320, 100), (380, 120))
+IGNORE_DISTANCE = .5
 
 STATE_TOO_CLOSE = 0
 STATE_WAITING_FOR_TURN = 1
@@ -58,6 +60,17 @@ class LaneFollowingNode:
         self.continue_run = True
         self.last_angle_error = 0.
         self.last_position_error = 0.
+
+        self.detector = Detector(searchpath=['apriltags'],
+                       families='tag36h11',
+                       nthreads=1,
+                       quad_decimate=1.0,
+                       quad_sigma=0.0,
+                       refine_edges=1,
+                       decode_sharpening=0.25,
+                       debug=0)
+        self.last_seen_apriltag = 201
+
         def general_callback(msg):
             if msg.data == 'stop':
                 self.continue_run = False
@@ -145,7 +158,33 @@ class LaneFollowingNode:
                 self.stopline_processing(im)
                 self.update_controller(im)
                 self.controller.update(self.detection_manager.isCarTooClose())
+                self.update_apriltag_detection(im)
             rate.sleep()
+
+
+    def update_apriltag_detection(self, im):
+        camera_matrix = np.array(self.intrinsic["camera_matrix"]["data"]).reshape(3,3)
+        distort_coeff = np.array(self.intrinsic["distortion_coefficients"]["data"]).reshape(5,1)
+        fx = camera_matrix[0][0].item()
+        fy = camera_matrix[1][1].item()
+        cx = camera_matrix[0][2].item()
+        cy = camera_matrix[1][2].item()
+        tag_size = 0.065  # in meters
+
+        width = self.image.shape[1]
+        height = self.image.shape[0]
+
+        newmatrix, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, distort_coeff, (width,height), 1, (width,height))
+        undistort_im = cv2.undistort(self.image, camera_matrix, distort_coeff, None, newmatrix)
+        input_image = cv2.cvtColor(undistort_im, cv2.COLOR_BGR2GRAY)
+        detected_tags = self.detector.detect(input_image, estimate_tag_pose=True, camera_params=(fx, fy, cx, cy), tag_size=tag_size)
+        for det in detected_tags:
+            id = det.tag_id
+            
+            ihom_pose = det.pose_t
+            if np.linalg.norm(ihom_pose) > IGNORE_DISTANCE:
+                continue
+            self.last_seen_apriltag = id
 
     
     def update_controller(self, im):
@@ -287,25 +326,6 @@ class LaneFollowingNode:
 
             xmin, ymin, width, height = cv2.boundingRect(ctn)
             xmax = xmin + width
-            midx, midy = xmin + .5 * width, ymin + .5 * height
-
-            # detect which way we can turn to
-            if self.controller.getCurrentState() == STATE_WAITING_FOR_TURN and (area > 500 and im.shape[0] * 0.55 > midy > im.shape[0] * 0.37):
-                self.turn_detection[0] += .5
-                if im.shape[1] * 0.15 < midx < im.shape[1] * 0.45:
-                    print(f'case1 {midx}, {midy}')
-                    cv2.arrowedLine(im,
-                        (int(midx), int(midy)), 
-                        (int(midx), int(midy + 10)), 
-                        (0, 255, 0), 3)
-                    self.turn_detection[1] += 1
-                elif im.shape[1] * 0.45 <= midx < im.shape[1] * 0.9:
-                    cv2.arrowedLine(im,
-                        (int(midx), int(midy)), 
-                        (int(midx), int(midy + 10)), 
-                        (0, 0, 255), 3)
-                    print(f'case2 {midx}, {midy}')
-                    self.turn_detection[2] += 1
 
             if area > largest_area and area > 4000 and xmax > im.shape[1] * .5 and xmin < im.shape[1] * .5:
                 largest_area = area
@@ -337,12 +357,14 @@ class LaneFollowingNode:
             if self.detection_manager.isSafeToTurn():
                 if self.controller.actionQueueIsEmpty():
                     # make a turn
-                    possible_turns = [0, 1, 2]
-                    min_idx = 0
-                    for i in range(1, len(self.turn_detection)):
-                        if self.turn_detection[i] < self.turn_detection[0]:
-                            min_idx = i
-                    possible_turns.remove(min_idx)
+                    tagid = self.last_seen_apriltag
+                    print(f'last seen tag id {tagid}')
+                    if tagid in (201, 200, 58, 133, 94, 93):
+                        possible_turns = [1, 2]
+                    elif tagid in (162, 169):
+                        possible_turns = [0, 2]
+                    else:
+                        possible_turns = [0, 1]
 
                     turn_idx = -1
                     best_distance_square = math.inf
@@ -373,7 +395,7 @@ class LaneFollowingNode:
                         self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5, STATE_TURNING)
                     elif turn_idx == 2:
                         print('making a right turn')
-                        self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
+                        self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .84, STATE_TURNING)
 
                     # reset the detection list since we are out of the intersection after the turn
                     for i in range(len(self.turn_detection)):
