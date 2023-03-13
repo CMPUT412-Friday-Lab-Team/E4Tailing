@@ -111,12 +111,12 @@ class LaneFollowingNode:
             elif patternStr == 'TURN_LEFT':
                 msg.color_list = ["red","red","switchedoff","switchedoff","switchedoff"]
                 msg.color_mask = [1, 1, 0, 0, 0]
-                msg.frequency = 1.
+                msg.frequency = 3.
                 msg.frequency_mask = [1, 1, 0, 0, 0]
             elif patternStr == 'TURN_RIGHT':
                 msg.color_list = ["switchedoff","switchedoff","switchedoff","red","red"]
                 msg.color_mask = [0, 0, 0, 1, 1]
-                msg.frequency = 1.
+                msg.frequency = 3.
                 msg.frequency_mask = [0, 0, 0, 1, 1]
             changePatternSrv(msg)
         except rospy.ServiceException as e:
@@ -365,7 +365,7 @@ class LaneFollowingNode:
                         self.change_pattern("DRIVING")
                     elif turn_idx == 2:
                         self.change_pattern("TURN_RIGHT")
-                        
+
                     self.controller.driveForTime(0, 0, PROCESSING_RATE * 2, STATE_TURNING)
                     self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25, STATE_TURNING)                    
                     if turn_idx == 0:
