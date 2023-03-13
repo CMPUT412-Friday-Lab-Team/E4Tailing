@@ -81,7 +81,6 @@ class KineticController:
         self.actions_queue.append((left_speed, right_speed, ntime_step, state))
     
     def update_error(self, angle_error, position_error):
-        #print(angle_error)
         self.angle_error_i = (self.angle_error_i + angle_error) * (1 - I_DECAY_FACTOR)
         self.position_error_i = (self.position_error_i + position_error) * (1 - I_DECAY_FACTOR)
 
