@@ -54,7 +54,6 @@ class LaneFollowingNode:
         self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
         self.stop_timer = self.stop_timer_default  # current timer, maxed out at self.stop_timer_default
-        self.turn_detection = [0., 0., 0.]  # detecting if the left, forward and right direction of an intersection has a road to turn to
         self.cur_pattern = None
 
         self.continue_run = True
@@ -398,8 +397,6 @@ class LaneFollowingNode:
                         self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .84, STATE_TURNING)
 
                     # reset the detection list since we are out of the intersection after the turn
-                    for i in range(len(self.turn_detection)):
-                        self.turn_detection[i] = 0
                     self.turn_flag = False
                     self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.5
 
