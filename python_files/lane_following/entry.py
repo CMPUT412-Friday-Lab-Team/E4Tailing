@@ -52,6 +52,7 @@ class LaneFollowingNode:
         self.max_speed = 0.48  # top speed when driving in a single lane
         self.speed = self.max_speed  # current speed
         self.correct_x = 1
+        self.timer = 0
 
         self.turn_flag = False
         self.stop_timer_default = PROCESSING_RATE * .25  # time before stopping after seeing a red line
@@ -172,14 +173,13 @@ class LaneFollowingNode:
             im = self.image
             self.image_lock.release()
             if im is not None:
-
-                x, y = self.detection_manager.getCenter()
-                # print(f'observations: {self.detection_manager.isDetected()} {self.detection_manager.getDistance()} center: {x}, {y}')
+                self.timer += 1
 
                 self.stopline_processing(im)
                 self.update_controller(im)
                 self.controller.update(self.detection_manager.isCarTooClose())
-                self.update_apriltag_detection(im)
+                if self.timer % 5 == 0:
+                    self.update_apriltag_detection(im)
             rate.sleep()
 
 
