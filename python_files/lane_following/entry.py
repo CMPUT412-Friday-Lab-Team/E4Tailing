@@ -117,7 +117,7 @@ class LaneFollowingNode:
                 msg.color_list = ["switchedoff","switchedoff","switchedoff","red","red"]
                 msg.color_mask = [0, 0, 0, 1, 1]
                 msg.frequency = 3.
-                msg.frequency_mask = [0, 0, 0, 0, 0]
+                msg.frequency_mask = [0, 0, 0, 1, 1]
             changePatternSrv(msg)
         except rospy.ServiceException as e:
             print('Service request failed')
@@ -356,8 +356,6 @@ class LaneFollowingNode:
                             best_distance_square = cur_distance_square
                             turn_idx = cur_turn_idx
 
-
-
                     self.speed = self.max_speed
                     if turn_idx == 0:
                         self.change_pattern("TURN_LEFT")
@@ -366,18 +364,14 @@ class LaneFollowingNode:
                     elif turn_idx == 2:
                         self.change_pattern("TURN_RIGHT")
 
-                    self.controller.driveForTime(0, 0, PROCESSING_RATE * 1.5, STATE_TURNING)
                     self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * .25, STATE_TURNING)                    
                     if turn_idx == 0:
-                        self.change_pattern('TURN_LEFT')
                         print('making a left turn')
                         self.controller.driveForTime(.58 * self.speed, 1.42 * self.speed, PROCESSING_RATE * 2.5, STATE_TURNING)
                     elif turn_idx == 1:
-                        self.change_pattern('DRIVING')
                         print('making a forward turn')
                         self.controller.driveForTime(1.1 * self.speed, .9 * self.speed, PROCESSING_RATE * 1.5, STATE_TURNING)
                     elif turn_idx == 2:
-                        self.change_pattern('TURN_RIGHT')
                         print('making a right turn')
                         self.controller.driveForTime(1.47 * self.speed, .53 * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
 
