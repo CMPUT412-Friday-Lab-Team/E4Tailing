@@ -10,6 +10,7 @@ from std_msgs.msg import String, ColorRGBA
 import threading
 from dt_apriltags import Detector
 import rospkg
+import yaml
 
 import kinetic_controller
 import detection_info
