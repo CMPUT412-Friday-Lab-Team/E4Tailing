@@ -9,6 +9,7 @@ from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import String, ColorRGBA
 import threading
 from dt_apriltags import Detector
+import rospkg
 
 import kinetic_controller
 import detection_info
@@ -60,6 +61,7 @@ class LaneFollowingNode:
         self.last_angle_error = 0.
         self.last_position_error = 0.
 
+        rospack = rospkg.RosPack()
         self.intrinsic = self.readYamlFile(rospack.get_path('augmented_reality_apriltag') + '/src/camera_intrinsic.yaml')
         self.detector = Detector(searchpath=['apriltags'],
                        families='tag36h11',
