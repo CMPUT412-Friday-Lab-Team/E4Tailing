@@ -62,7 +62,7 @@ class LaneFollowingNode:
         self.last_position_error = 0.
 
         rospack = rospkg.RosPack()
-        self.intrinsic = self.readYamlFile(rospack.get_path('augmented_reality_apriltag') + '/src/camera_intrinsic.yaml')
+        self.intrinsic = self.readYamlFile(rospack.get_path('lane_following') + '/src/camera_intrinsic.yaml')
         self.detector = Detector(searchpath=['apriltags'],
                        families='tag36h11',
                        nthreads=1,
