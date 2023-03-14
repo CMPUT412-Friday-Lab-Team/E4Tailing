@@ -111,6 +111,7 @@ class LaneFollowingNode:
 
     def general_callback(self, msg):
         strs = msg.data.split()
+        print (strs)
         if len(strs) == 4:
             cp, ci, cd = float(strs[1]), float(strs[2]), float(strs[3])
             if strs[0] == 'position':
@@ -123,9 +124,9 @@ class LaneFollowingNode:
                 print(f'coefficient type {strs[0]} not recognized!')
         elif len(strs) % 3 == 0:
             # received wheel commands
-            commands = []
             for i in range(len(strs) / 3):
                 left, right, time = float(strs[i * 3]), float(strs[i * 3 + 1]), float(strs[i * 3 + 2])
+                print(f'received wheel command {left} {right} {time} ')
                 self.controller.driveForTime(left, right, time, STATE_DRIVING)
 
     def change_pattern(self, patternStr):
