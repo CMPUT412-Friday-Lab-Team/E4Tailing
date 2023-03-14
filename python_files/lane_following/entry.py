@@ -121,6 +121,12 @@ class LaneFollowingNode:
                 self.controller.angle_coeffs = (cp, ci, cd)
             else:
                 print(f'coefficient type {strs[0]} not recognized!')
+        elif len(strs) % 3 == 0:
+            # received wheel commands
+            commands = []
+            for i in range(len(strs) / 3):
+                left, right, time = float(strs[i * 3]), float(strs[i * 3 + 1]), float(strs[i * 3 + 2])
+                self.controller.driveForTime(left, right, time, STATE_DRIVING)
 
     def change_pattern(self, patternStr):
         if patternStr == self.cur_pattern:
@@ -282,10 +288,10 @@ class LaneFollowingNode:
             if self.detection_manager.isCarTooClose():
                 self.change_pattern('STOP')
                 # print(f'stopping turn_flag:{self.turn_flag}')
-                if self.turn_flag:
-                    self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
-                else:
-                    self.controller.driveForTime(0., 0., 1, STATE_TOO_CLOSE)
+                # if self.turn_flag:
+                #     self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
+                # else:
+                #     self.controller.driveForTime(0., 0., 1, STATE_TOO_CLOSE)
             else:
                 self.change_pattern('DRIVING')
                 self.controller.update_error(angle_error, position_error)
@@ -295,7 +301,7 @@ class LaneFollowingNode:
                 left_speed = self.speed * (1 - adjust)
                 right_speed = self.speed * (1 + adjust)
                 # print(f'driving: err:{position_error} lrspeeds: {left_speed}, {right_speed}')
-                self.controller.driveForTime(left_speed, right_speed, 1, STATE_DRIVING)
+                # self.controller.driveForTime(left_speed, right_speed, 1, STATE_DRIVING)
 
         if publish_flag:
             ARROW_LENGTH = 50
@@ -407,16 +413,16 @@ class LaneFollowingNode:
                     elif turn_idx == 2:
                         self.change_pattern("TURN_RIGHT")
 
-                    self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * 1.1, STATE_TURNING)                    
-                    if turn_idx == 0:
-                        print('making a left turn')
-                        self.controller.driveForTime(-1. * self.speed, 1. * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
-                    elif turn_idx == 1:
-                        print('making a forward turn')
-                        self.controller.driveForTime(1. * self.speed, 1. * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
-                    elif turn_idx == 2:
-                        print('making a right turn')
-                        self.controller.driveForTime(1. * self.speed, -1 * self.speed, PROCESSING_RATE * .84, STATE_TURNING)
+                    # self.controller.driveForTime(1. * self.max_speed, 1. * self.max_speed, PROCESSING_RATE * 1.1, STATE_TURNING)                    
+                    # if turn_idx == 0:
+                    #     print('making a left turn')
+                    #     self.controller.driveForTime(-1. * self.speed, 1. * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
+                    # elif turn_idx == 1:
+                    #     print('making a forward turn')
+                    #     self.controller.driveForTime(1. * self.speed, 1. * self.speed, PROCESSING_RATE * .75, STATE_TURNING)
+                    # elif turn_idx == 2:
+                    #     print('making a right turn')
+                    #     self.controller.driveForTime(1. * self.speed, -1 * self.speed, PROCESSING_RATE * .84, STATE_TURNING)
 
                     # reset the detection list since we are out of the intersection after the turn
                     self.turn_flag = False
@@ -433,7 +439,7 @@ class LaneFollowingNode:
             self.stop_timer = self.stop_timer_default + 99999
             self.turn_flag = True
 
-            self.controller.driveForTime(0., 0., PROCESSING_RATE * .75, STATE_WAITING_FOR_TURN)
+            # self.controller.driveForTime(0., 0., PROCESSING_RATE * .75, STATE_WAITING_FOR_TURN)
         else:  # not approaching stop line
             if self.stop_timer > self.stop_timer_default:
                 self.stop_timer = max(self.stop_timer - 1, self.stop_timer_default)
