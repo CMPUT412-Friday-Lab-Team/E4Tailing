@@ -431,7 +431,7 @@ class LaneFollowingNode:
                         print('making a left turn')
                         self.controller.driveForTime(.6, .6, 28, STATE_TURNING)
                         self.controller.driveForTime(-.6, .6, 11, STATE_TURNING)
-                        self.controller.driveForTime(.6, .6, 10, STATE_TURNING)
+                        self.controller.driveForTime(.6, .6, 16, STATE_TURNING)
                     elif turn_idx == 1:
                         print('making a forward turn')
                         self.controller.driveForTime(.6, .6, 34, STATE_TURNING)
