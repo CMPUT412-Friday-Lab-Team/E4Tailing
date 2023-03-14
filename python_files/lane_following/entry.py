@@ -75,10 +75,7 @@ class LaneFollowingNode:
                        debug=0)
         self.last_seen_apriltag = 201
 
-        def general_callback(msg):
-            if msg.data == 'stop':
-                self.continue_run = False
-        rospy.Subscriber('/general', String, general_callback)
+        rospy.Subscriber('/general', String, self.general_callback)
 
     def readYamlFile(self,fname):
         """
@@ -110,6 +107,8 @@ class LaneFollowingNode:
             self.image_lock.release()
 
     def general_callback(self, msg):
+        if msg.data == 'stop':
+            self.continue_run = False
         strs = msg.data.split()
         print (strs)
         if len(strs) == 4:
