@@ -387,12 +387,24 @@ class LaneFollowingNode:
                     # make a turn
                     tagid = self.last_seen_apriltag
                     print(f'last seen tag id {tagid}')
-                    if tagid in (201, 200, 58, 133, 94, 93):
+                    if tagid in (201, 200, 58):
                         possible_turns = [1, 2]
-                    elif tagid in (162, 169):
+                        id_after = [None, 133, 162]
+                    elif tagid in (133, 94, 93):
+                        possible_turns = [1, 2]
+                        id_after = [None, 58, 169]
+                    elif tagid == 162:
                         possible_turns = [0, 2]
-                    else:
+                        id_after = [62, None, 58]
+                    elif tagid == 169:
+                        possible_turns = [0, 2]
+                        id_after = [153, None, 133]
+                    elif tagid == 62:
                         possible_turns = [0, 1]
+                        id_after = [162, 153, None]
+                    else: # id is 153
+                        possible_turns = [0, 1]
+                        id_after = [169, 62, None]
 
                     turn_idx = -1
                     best_distance_square = math.inf
@@ -413,6 +425,7 @@ class LaneFollowingNode:
                         self.change_pattern("DRIVING")
                     elif turn_idx == 2:
                         self.change_pattern("TURN_RIGHT")
+                    self.last_seen_apriltag = id_after[turn_idx]
               
                     if turn_idx == 0:
                         print('making a left turn')
