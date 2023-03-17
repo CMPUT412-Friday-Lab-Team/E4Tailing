@@ -380,7 +380,7 @@ class LaneFollowingNode:
               
                     if turn_idx == 0:
                         self.controller.driveForDistance(.46)
-                        self.controller.adjustToTargetRotation(math.pi *.5)
+                        self.controller.adjustToTargetRotation(math.pi *.6)
                         self.controller.driveForDistance(.5)
                     elif turn_idx == 1:
                         self.controller.driveForDistance(.5)
