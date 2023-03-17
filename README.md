@@ -1,3 +1,9 @@
+Authors: Leen Alzebdeh and Tianming Han
+Description: This repository contains code that implements the tailing behavior for the duckiebot. To run the code, please build the code and run it using dts devel build/run and send a string message to start_gui_tool as follows:
+    rostopic pub -1 /general std_msgs/String 'start'
+The robot will download the latest scripts on main and run them. By then the duckiebot should start lane following and tailing.
+
+
 # Template: template-ros
 
 This template provides a boilerplate repository
