@@ -77,6 +77,9 @@ class LaneFollowingNode:
 
         rospy.Subscriber('/general', String, self.general_callback)
 
+    def change_pattern(self, pattern):
+        pass
+
     def readYamlFile(self,fname):
         """
             Reads the 'fname' yaml file and returns a dictionary with its input.
