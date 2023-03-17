@@ -28,7 +28,7 @@ class ReloaderNode(DTROS):
         def reloader_callback(msg):
             nonlocal github
             if msg.data == 'start':
-                owner = github.get_user('CMPUT412-Team-Leen-Tianming')
+                owner = github.get_user('CMPUT412-Friday-Lab-Team')
                 print(f'current working folder:{os.getcwd()}')
                 for package_name in ('lane_following', 'duckiebot_detection'):
                     target_folder = rospack.get_path(package_name) + f'/src'
