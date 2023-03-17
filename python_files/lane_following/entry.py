@@ -349,10 +349,10 @@ class LaneFollowingNode:
                         possible_turns = [1, 2]
                         id_after = [None, 58, 169]
                     elif tagid == 162:
-                        possible_turns = [0, 2]
+                        possible_turns = [2, 0]
                         id_after = [62, None, 58]
                     elif tagid == 169:
-                        possible_turns = [0, 2]
+                        possible_turns = [2, 0]
                         id_after = [153, None, 133]
                     elif tagid == 62:
                         possible_turns = [0, 1]
@@ -361,7 +361,7 @@ class LaneFollowingNode:
                         possible_turns = [0, 1]
                         id_after = [169, 62, None]
 
-                    turn_idx = -1
+                    turn_idx = possible_turns[0]
                     best_distance_square = math.inf
                     last_observed_x, last_observed_y = self.detection_manager.getCenter()
 
@@ -375,13 +375,15 @@ class LaneFollowingNode:
 
                     self.speed = self.max_speed
                     self.last_seen_apriltag = id_after[turn_idx]
+
+                    rospy.loginfo(f'turn idx:{turn_idx}, apriltag seen: {self.last_seen_apriltag}')
               
                     if turn_idx == 0:
-                        self.controller.driveForDistance(.5)
+                        self.controller.driveForDistance(.46)
                         self.controller.adjustToTargetRotation(math.pi *.5)
                         self.controller.driveForDistance(.5)
                     elif turn_idx == 1:
-                        self.controller.driveForDistance(.6)
+                        self.controller.driveForDistance(.5)
                     elif turn_idx == 2:
                         self.controller.driveForDistance(.3)
                         self.controller.adjustToTargetRotation(-math.pi *.5)
@@ -389,7 +391,7 @@ class LaneFollowingNode:
 
                     # reset the detection list since we are out of the intersection after the turn
                     self.turn_flag = False
-                    self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 4
+                    self.stop_timer = self.stop_timer_default + PROCESSING_RATE * 2.8
 
         self.correct_x = (contour_y - 330) / (390 - 330)
         self.correct_x = 1 - min(1, max(0, self.correct_x))
