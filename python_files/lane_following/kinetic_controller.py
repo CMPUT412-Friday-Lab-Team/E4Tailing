@@ -149,6 +149,7 @@ class KineticController:
         while True:
             curx, cury, curtheta = self.wheel_integration.get_state_meters()
             dx, dy = x - curx, y - cury
+            rospy.loginfo(f'to target location: {dx}, {dy}')
             target_dist = math.sqrt(dx ** 2 + dy ** 2)
             if target_dist < 0.05:  # if within 50 millimeter then we think we are already on the target
                 self.drive(0, 0)
@@ -205,6 +206,7 @@ class KineticController:
 
     def driveForDistance(self, distance):
         curx, cury, curtheta = self.wheel_integration.get_state_meters()
+        rospy.loginfo(f'driving to {curx} {cury}, {curtheta}')
 
         targetx, targety = curx + distance * math.cos(curtheta), cury + distance * math.sin(curtheta)
         self.driveToPoint(targetx, targety)
