@@ -15,9 +15,6 @@ import yaml
 import kinetic_controller
 import detection_info
 
-from duckietown_msgs.srv import SetCustomLEDPattern
-from duckietown_msgs.msg import LEDPattern
-
 HOST_NAME = os.environ["VEHICLE_NAME"]
 PUBLISH_IMAGE = True
 PUBLISH_IMAGE_TYPE = 'red'
@@ -248,13 +245,11 @@ class LaneFollowingNode:
         
         if self.controller.actionQueueIsEmpty():
             if self.detection_manager.isCarTooClose():
-                self.change_pattern('STOP')
                 if self.turn_flag:
                     self.controller.driveForTime(0., 0., 1, STATE_WAITING_FOR_TURN)
                 else:
                     self.controller.driveForTime(0., 0., 1, STATE_TOO_CLOSE)
             else:
-                self.change_pattern('DRIVING')
                 self.controller.update_error(angle_error, position_error)
                 adjust = self.controller.get_adjustment()
 
@@ -343,6 +338,7 @@ class LaneFollowingNode:
         if self.turn_flag:
             if self.detection_manager.isSafeToTurn():
                 if self.controller.actionQueueIsEmpty():
+                    self.controller.wheel_integration.reset_position()
                     # make a turn
                     tagid = self.last_seen_apriltag
 
@@ -378,24 +374,18 @@ class LaneFollowingNode:
                             turn_idx = cur_turn_idx
 
                     self.speed = self.max_speed
-                    if turn_idx == 0:
-                        self.change_pattern("TURN_LEFT")
-                    elif turn_idx == 1:
-                        self.change_pattern("DRIVING")
-                    elif turn_idx == 2:
-                        self.change_pattern("TURN_RIGHT")
                     self.last_seen_apriltag = id_after[turn_idx]
               
                     if turn_idx == 0:
-                        self.controller.driveForTime(.6, .6, 30, STATE_TURNING)
-                        self.controller.driveForTime(-.6, .6, 10, STATE_TURNING)
-                        self.controller.driveForTime(.6, .6, 16, STATE_TURNING)
+                        self.controller.driveForDistance(.5)
+                        self.controller.adjustToTargetRotation(math.pi *.5)
+                        self.controller.driveForDistance(.5)
                     elif turn_idx == 1:
-                        self.controller.driveForTime(.6, .6, 34, STATE_TURNING)
+                        self.controller.driveForDistance(.6)
                     elif turn_idx == 2:
-                        self.controller.driveForTime(.6, .6, 17, STATE_TURNING)
-                        self.controller.driveForTime(.6, -.6, 11, STATE_TURNING)
-                        self.controller.driveForTime(.6, .6, 10, STATE_TURNING)
+                        self.controller.driveForDistance(.3)
+                        self.controller.adjustToTargetRotation(-math.pi *.5)
+                        self.controller.driveForDistance(.3)
 
                     # reset the detection list since we are out of the intersection after the turn
                     self.turn_flag = False
@@ -406,7 +396,6 @@ class LaneFollowingNode:
 
         if self.stop_timer <= self.stop_timer_default and \
             (contour_y > 390 or (contour_y > 380 and self.stop_timer < self.stop_timer_default)):
-            self.change_pattern("STOP")
             self.speed = 0
             self.stop_timer = self.stop_timer_default + 99999
             self.turn_flag = True
