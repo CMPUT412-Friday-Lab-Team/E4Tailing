@@ -17,6 +17,11 @@ P_DECAY_FACTOR = 0.5
 I_DECAY_FACTOR = 0.02
 D_DECAY_FACTOR = 0.05
 
+STATE_TOO_CLOSE = 0
+STATE_WAITING_FOR_TURN = 1
+STATE_DRIVING = 2
+STATE_TURNING = 3
+
 
 def clip_0_2pi(rad):
     return rad % (2 * math.pi)
@@ -143,13 +148,13 @@ class KineticController:
         """
         stay still to reduce the momentum of the car to zero after carrying out some movement
         """
-        self.driveForTime(0, 0, 16)
+        self.driveForTime(0, 0, 16, STATE_TURNING)
     
     def driveToPoint(self, x, y):
         while True:
             curx, cury, curtheta = self.wheel_integration.get_state_meters()
             dx, dy = x - curx, y - cury
-            rospy.loginfo(f'to target location: {dx}, {dy}')
+            rospy.loginfo(f'to target location: {x}, {y} from {curx} {cury}, {curtheta}')
             target_dist = math.sqrt(dx ** 2 + dy ** 2)
             if target_dist < 0.05:  # if within 50 millimeter then we think we are already on the target
                 self.drive(0, 0)
@@ -206,9 +211,9 @@ class KineticController:
 
     def driveForDistance(self, distance):
         curx, cury, curtheta = self.wheel_integration.get_state_meters()
-        rospy.loginfo(f'driving to {curx} {cury}, {curtheta}')
 
         targetx, targety = curx + distance * math.cos(curtheta), cury + distance * math.sin(curtheta)
+        rospy.loginfo(f'driving to {targetx} {targety}')
         self.driveToPoint(targetx, targety)
         self.stop_momentum()
         self.adjustToTargetRotation(curtheta)  # make sure the rotation is the same as initial rotation
