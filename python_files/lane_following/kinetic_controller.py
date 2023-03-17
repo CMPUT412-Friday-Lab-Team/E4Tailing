@@ -56,8 +56,8 @@ class KineticController:
         self.actions_queue = []
 
 
-        self.sub_left = rospy.Subscriber(f'{HOST_NAME}/left_wheel_encoder_node/tick', WheelEncoderStamped, self.left_callback)
-        self.sub_right = rospy.Subscriber(f'{HOST_NAME}/right_wheel_encoder_node/tick', WheelEncoderStamped, self.right_callback)
+        self.sub_left = rospy.Subscriber(f'/{HOST_NAME}/left_wheel_encoder_node/tick', WheelEncoderStamped, self.left_callback)
+        self.sub_right = rospy.Subscriber(f'/{HOST_NAME}/right_wheel_encoder_node/tick', WheelEncoderStamped, self.right_callback)
         self.pub = rospy.Publisher(f'/{HOST_NAME}/wheels_driver_node/wheels_cmd', WheelsCmdStamped, queue_size=10)
         self.pose_pub = rospy.Publisher(f'/{HOST_NAME}/pose2d', Pose2DStamped, queue_size=10)
         self.rate = rospy.Rate(60)  # in Hz
